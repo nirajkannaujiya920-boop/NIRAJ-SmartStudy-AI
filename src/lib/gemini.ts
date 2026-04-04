@@ -4,15 +4,29 @@ const apiKey = process.env.GEMINI_API_KEY || "";
 const ai = new GoogleGenAI({ apiKey });
 
 export const geminiModel = "gemini-3-flash-preview";
+export const fallbackModel = "gemini-3.1-pro-preview";
+
+let quotaExhaustedUntil = 0;
 
 // Helper to handle Gemini errors gracefully with retry logic
-async function safeGenerateContent(params: any, retries = 3, delay = 2000) {
+export async function safeGenerateContent(params: any, retries = 5, delay = 5000) {
+  // Check if we are in a cooling period
+  if (Date.now() < quotaExhaustedUntil) {
+    throw new Error("QUOTA_EXCEEDED: AI is resting. Please try again in a minute.");
+  }
+
+  let currentModel = params.model || geminiModel;
+
   for (let i = 0; i < retries; i++) {
     try {
-      const response = await ai.models.generateContent(params);
+      // Use the current model for this attempt
+      const response = await ai.models.generateContent({
+        ...params,
+        model: currentModel
+      });
       return response;
     } catch (error: any) {
-      console.error(`Gemini API Error (Attempt ${i + 1}):`, error);
+      console.error(`Gemini API Error (Attempt ${i + 1} with ${currentModel}):`, error);
       
       let errorData = error;
       // Try to parse error message if it's a JSON string
@@ -34,18 +48,34 @@ async function safeGenerateContent(params: any, retries = 3, delay = 2000) {
         errorData?.error?.code === 429 ||
         errorData?.status === "RESOURCE_EXHAUSTED" ||
         errorData?.error?.status === "RESOURCE_EXHAUSTED" ||
-        (typeof error?.message === 'string' && error.message.includes("RESOURCE_EXHAUSTED"));
+        (typeof error?.message === 'string' && (
+          error.message.includes("RESOURCE_EXHAUSTED") || 
+          error.message.includes("429") || 
+          error.message.includes("quota exceeded")
+        )) ||
+        (error?.response?.status === 429);
       
-      if (isQuotaError && i < retries - 1) {
-        console.log(`Quota exceeded, retrying in ${delay}ms...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        delay *= 2; // Exponential backoff
-        continue;
-      }
-
-      // Check for quota exceeded (429) on last attempt
       if (isQuotaError) {
-        throw new Error("QUOTA_EXCEEDED: AI limit khatam ho gaya hai. Kripya thodi der baad try karein. (AI limit reached. Please try again later.)");
+        // On the 3rd attempt, try switching to the fallback model if we haven't already
+        if (i === 2 && currentModel === geminiModel) {
+          console.log("Switching to fallback model due to quota...");
+          currentModel = fallbackModel;
+        }
+
+        if (i < retries - 1) {
+          // Add some jitter to the delay (±20%)
+          const jitter = delay * 0.2 * (Math.random() * 2 - 1);
+          const finalDelay = Math.max(1000, delay + jitter);
+          
+          console.log(`Quota exceeded, retrying in ${Math.round(finalDelay)}ms...`);
+          await new Promise(resolve => setTimeout(resolve, finalDelay));
+          delay *= 2; // Exponential backoff
+          continue;
+        } else {
+          // Set cooling period for 60 seconds if all retries fail
+          quotaExhaustedUntil = Date.now() + 60000;
+          throw new Error("QUOTA_EXCEEDED: AI limit khatam ho gaya hai. Kripya 1 minute baad try karein. (AI limit reached. Please try again in 1 minute.)");
+        }
       }
       
       // Check for safety filters
@@ -68,6 +98,8 @@ export async function solveFromImage(base64Image: string, language: 'hindi' | 'e
           { text: `Solve this study question. 
             Language: ${language}. 
             Provide: 1. Step-by-step solution, 2. Simple explanation, 3. Real-life example, 4. Short trick to remember.
+            IMPORTANT: For math formulas, ALWAYS use standard LaTeX with $ for inline math and $$ for block math. 
+            Example: Use $E=mc^2$ for inline and $$\frac{-b \pm \sqrt{b^2-4ac}}{2a}$$ for blocks.
             If language is Hindi, use Hindi. If English, use English. If Hinglish, use a mix of Hindi and English.` },
           { inlineData: { data: base64Image, mimeType: "image/jpeg" } }
         ]
@@ -98,6 +130,32 @@ export async function summarizeFromImage(base64Image: string) {
     ]
   });
   return response.text;
+}
+
+export async function askVoiceAssistant(query: string) {
+  const prompt = `You are a smart, fast and helpful AI study assistant for the app "NIRAJ SmartStudy AI".
+Your creator is NIRAJ KUMAR KANNAUJIYA.
+Rules:
+1. Answer in simple language.
+2. Support both Hindi and English.
+3. If the user asks in Hindi, reply in Hindi. If in English, reply in English.
+4. Solve math problems (like "2+3") and answer study questions.
+5. Keep answers VERY SHORT and CLEAR (max 2-3 sentences).
+6. Do not use any markdown symbols like *, #, _, etc. in your response as it will be read aloud.
+7. Be friendly and professional.
+
+User Query: ${query}`;
+
+  try {
+    const response = await safeGenerateContent({
+      model: geminiModel,
+      contents: [{ parts: [{ text: prompt }] }]
+    });
+    return response.text;
+  } catch (err) {
+    console.error(err);
+    return "Maaf kijiye, main abhi connect nahi kar paa raha hoon. Kripya phir se try karein. (Sorry, I'm having trouble connecting. Please try again.)";
+  }
 }
 
 export async function generateQuiz(topic: string, count: number = 5, studentClass?: string) {
@@ -196,8 +254,15 @@ export async function askDoubtTeacherStyle(question: string, base64Image?: strin
     3. If language is Hindi, use ONLY Hindi. If English, use ONLY English. If Hinglish, use a mix of Hindi and English.
     4. Be very concise. Answer ONLY what is asked. Do not give long unnecessary details.
     5. ALWAYS start with a polite greeting in the selected language. For example, in Hindi: "Namaste! Main NIRAJ AI hoon. Main aapki kaise madad kar sakta hoon?".
-    6. Use simple language and analogies.
-    7. End with a short 'Teacher's Tip' in the selected language.`;
+    6. If anyone asks "Who created you?" or "Who made you?" or "Tumhe kisne banaya?", ALWAYS reply that you were created by "NIRAJ KUMAR KANNAUJIYA" in a smart and professional way.
+    7. Use simple language and analogies.
+    8. End with a short 'Teacher's Tip' in the selected language.
+    9. For math formulas, ALWAYS use standard LaTeX with $ for inline math and $$ for block math.
+    10. You have access to real-time world knowledge. Use it to provide accurate and up-to-date information.`;
+
+  const config = {
+    tools: [{ googleSearch: {} }]
+  };
 
   if (base64Image) {
     const response = await safeGenerateContent({
@@ -209,16 +274,26 @@ export async function askDoubtTeacherStyle(question: string, base64Image?: strin
             { inlineData: { data: base64Image, mimeType: "image/jpeg" } }
           ]
         }
-      ]
+      ],
+      config
     });
     return response.text;
   } else {
     const response = await safeGenerateContent({
       model: geminiModel,
       contents: prompt,
+      config
     });
     return response.text;
   }
+}
+
+export async function translateText(text: string, targetLanguage: string) {
+  const response = await safeGenerateContent({
+    model: geminiModel,
+    contents: `Translate the following text to ${targetLanguage}. Return ONLY the translated text, no extra words:\n\n${text}`,
+  });
+  return response.text;
 }
 
 export async function generateVoiceExplanation(topic: string, language: 'hindi' | 'english') {

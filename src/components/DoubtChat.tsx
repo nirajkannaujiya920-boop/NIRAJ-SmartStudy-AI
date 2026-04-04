@@ -3,9 +3,12 @@ import { Send, BrainCircuit, Sparkles, RefreshCw, User, GraduationCap, ArrowLeft
 import { askDoubtTeacherStyle } from '../lib/gemini';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import { useNavigate } from 'react-router-dom';
 import { db, auth } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { SmartMic } from './SmartMic';
 
 export const DoubtChat: React.FC = () => {
   const navigate = useNavigate();
@@ -66,9 +69,24 @@ export const DoubtChat: React.FC = () => {
     } catch (err: any) {
       console.error(err);
       const errorMessage = err.message || "AI Teacher is currently busy. Please try again later.";
-      setMessages(prev => [...prev, { role: 'ai', text: `⚠️ **Error:** ${errorMessage}` }]);
+      setMessages(prev => [...prev, { 
+        role: 'ai', 
+        text: `⚠️ **Error:** ${errorMessage}\n\n[Click here to retry last message]`,
+        isError: true 
+      }]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const retryLastMessage = () => {
+    const lastUserMsg = [...messages].reverse().find(m => m.role === 'user');
+    if (lastUserMsg) {
+      setMessages(prev => prev.filter((m, i) => i !== prev.length - 1)); // Remove error message
+      setInput(lastUserMsg.text);
+      setImage(lastUserMsg.image || null);
+      setMessages(prev => prev.filter((m, i) => i !== prev.length - 1)); // Remove last user message (it will be re-added)
+      handleSend();
     }
   };
 
@@ -151,9 +169,22 @@ export const DoubtChat: React.FC = () => {
                   <img src={msg.image} alt="User upload" className="w-full h-32 object-cover rounded-xl mb-2" />
                 )}
                 <div className="prose prose-sm dark:prose-invert max-w-none">
-                  <Markdown>{msg.text}</Markdown>
+                  <Markdown 
+                    remarkPlugins={[remarkMath]} 
+                    rehypePlugins={[rehypeKatex]}
+                  >
+                    {msg.text}
+                  </Markdown>
                 </div>
-                {msg.role === 'ai' && idx > 0 && (
+                {msg.role === 'ai' && (msg as any).isError && (
+                  <button 
+                    onClick={retryLastMessage}
+                    className="mt-2 text-[10px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 underline"
+                  >
+                    Retry Now
+                  </button>
+                )}
+                {msg.role === 'ai' && idx > 0 && !(msg as any).isError && (
                   <button 
                     onClick={() => saveToNotes(msg.text, idx)}
                     className="absolute -right-10 top-0 p-2 text-gray-400 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-all"
@@ -218,6 +249,7 @@ export const DoubtChat: React.FC = () => {
             placeholder="Ask your doubt or send photo..."
             className="flex-1 px-6 py-4 bg-white dark:bg-[#1e1e1e] border-2 border-gray-200 dark:border-gray-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
           />
+          <SmartMic onResult={(text) => setInput(prev => prev + ' ' + text)} />
           <button 
             onClick={handleSend}
             disabled={(!input.trim() && !image) || loading}

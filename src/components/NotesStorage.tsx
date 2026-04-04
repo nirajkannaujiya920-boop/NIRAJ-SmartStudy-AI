@@ -1,16 +1,28 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Search, Trash2, FileText, ExternalLink, Clock, Sparkles } from 'lucide-react';
+import { BookOpen, Search, Trash2, FileText, ExternalLink, Clock, Sparkles, RefreshCw } from 'lucide-react';
 import { db, auth } from '../firebase';
 import { collection, query, where, onSnapshot, deleteDoc, doc, orderBy } from 'firebase/firestore';
 import { StudyNote } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 
 export const NotesStorage: React.FC = () => {
   const [notes, setNotes] = useState<StudyNote[]>([]);
   const [search, setSearch] = useState('');
   const [selectedNote, setSelectedNote] = useState<StudyNote | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const user = auth.currentUser;
+
+  const formatDate = (date: any) => {
+    if (!date) return 'N/A';
+    if (typeof date === 'string') return new Date(date).toLocaleDateString();
+    if (date.toDate) return date.toDate().toLocaleDateString();
+    return new Date(date).toLocaleDateString();
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -27,13 +39,17 @@ export const NotesStorage: React.FC = () => {
   }, [user]);
 
   const deleteNote = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this note?')) {
-      try {
-        await deleteDoc(doc(db, 'notes', id));
-        if (selectedNote?.id === id) setSelectedNote(null);
-      } catch (err) {
-        console.error(err);
-      }
+    setIsDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteDoc(doc(db, 'notes', id));
+      if (selectedNote?.id === id) setSelectedNote(null);
+      setDeletingId(null);
+    } catch (err: any) {
+      console.error(err);
+      setDeleteError(err.message || "Failed to delete note.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -59,6 +75,55 @@ export const NotesStorage: React.FC = () => {
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
+        {/* Delete Confirmation Modal */}
+        <AnimatePresence>
+          {deletingId && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white dark:bg-[#1e1e1e] p-6 rounded-[2rem] shadow-2xl max-w-sm w-full text-center"
+              >
+                <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Trash2 size={32} />
+                </div>
+                <h3 className="text-xl font-bold mb-2">Delete Note?</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to delete this note? This action cannot be undone.</p>
+                
+                {deleteError && (
+                  <div className="mb-4 p-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs rounded-lg border border-red-100 dark:border-red-900/30">
+                    {deleteError}
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setDeletingId(null)}
+                    disabled={isDeleting}
+                    className="flex-1 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl font-bold hover:bg-gray-200 transition-all disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => deleteNote(deletingId)}
+                    disabled={isDeleting}
+                    className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isDeleting && <RefreshCw size={16} className="animate-spin" />}
+                    {isDeleting ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Notes List */}
         <div className="md:col-span-1 space-y-3 max-h-[70vh] overflow-y-auto pr-2 scrollbar-thin">
           {filteredNotes.length > 0 ? (
@@ -76,7 +141,15 @@ export const NotesStorage: React.FC = () => {
                   <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full font-bold">
                     {note.subject}
                   </span>
-                  <span className="text-[10px] text-gray-400">{new Date(note.createdAt).toLocaleDateString()}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-gray-400">{formatDate(note.createdAt)}</span>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setDeletingId(note.id); }}
+                      className="p-1 text-gray-300 hover:text-red-500 transition-colors"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </div>
                 </div>
                 <h4 className="font-bold text-sm line-clamp-1">{note.title}</h4>
                 <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mt-1">{note.summary || note.content}</p>
@@ -108,12 +181,12 @@ export const NotesStorage: React.FC = () => {
                     <div>
                       <h3 className="text-2xl font-bold">{selectedNote.title}</h3>
                       <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
-                        <span className="flex items-center gap-1"><Clock size={12} /> {new Date(selectedNote.createdAt).toLocaleString()}</span>
+                        <span className="flex items-center gap-1"><Clock size={12} /> {formatDate(selectedNote.createdAt)}</span>
                         <span className="flex items-center gap-1"><BookOpen size={12} /> {selectedNote.subject}</span>
                       </div>
                     </div>
                     <button 
-                      onClick={() => deleteNote(selectedNote.id)}
+                      onClick={() => setDeletingId(selectedNote.id)}
                       className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-all"
                     >
                       <Trash2 size={20} />
@@ -127,7 +200,12 @@ export const NotesStorage: React.FC = () => {
                           <Sparkles size={12} /> AI Summary
                         </h5>
                         <div className="prose prose-sm dark:prose-invert max-w-none">
-                          <ReactMarkdown>{selectedNote.summary}</ReactMarkdown>
+                          <ReactMarkdown 
+                            remarkPlugins={[remarkMath]} 
+                            rehypePlugins={[rehypeKatex]}
+                          >
+                            {selectedNote.summary}
+                          </ReactMarkdown>
                         </div>
                       </div>
                     )}

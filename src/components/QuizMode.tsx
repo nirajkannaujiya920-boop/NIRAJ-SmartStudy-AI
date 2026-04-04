@@ -3,6 +3,7 @@ import { Brain, HelpCircle, CheckCircle, XCircle, ArrowRight, BookOpen, Globe, S
 import { generateQuiz, generateMixedQuiz } from '../lib/gemini';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
+import { SmartMic } from './SmartMic';
 
 interface Question {
   question: string;
@@ -16,6 +17,7 @@ export const QuizMode: React.FC = () => {
   const [step, setStep] = useState(1);
   const [quizType, setQuizType] = useState<'subject' | 'current_affairs' | 'mind' | 'mixed'>('mixed');
   const [studentClass, setStudentClass] = useState('');
+  const [classGroup, setClassGroup] = useState<'1-5' | '6-8' | '9-10' | '11-12' | 'college' | null>(null);
   const [topic, setTopic] = useState('');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -72,6 +74,24 @@ export const QuizMode: React.FC = () => {
     }
   };
 
+  const classGroups = [
+    { id: '1-5', name: 'Class 1 to 5', desc: 'Primary School' },
+    { id: '6-8', name: 'Class 6 to 8', desc: 'Middle School' },
+    { id: '9-10', name: 'Class 9 to 10', desc: 'High School' },
+    { id: '11-12', name: 'Class 11 to 12', desc: 'Intermediate' },
+    { id: 'college', name: 'College/Other', desc: 'Higher Education' },
+  ];
+
+  const getSubjectsForGroup = (group: string) => {
+    switch (group) {
+      case '1-5': return ['Math', 'English', 'Hindi', 'EVS', 'GK', 'Art'];
+      case '6-8': return ['Math', 'Science', 'Social Science', 'English', 'Hindi', 'Sanskrit', 'Computer'];
+      case '9-10': return ['Math', 'Science', 'Social Science', 'English', 'Hindi', 'Physics', 'Chemistry', 'Biology', 'History', 'Geography', 'Civics', 'Economics'];
+      case '11-12': return ['Physics', 'Chemistry', 'Math', 'Biology', 'English', 'Hindi', 'Accountancy', 'Business Studies', 'Economics', 'History', 'Geography', 'Political Science', 'Sociology', 'Computer Science'];
+      default: return ['Math', 'Physics', 'Chemistry', 'Biology', 'English', 'Hindi', 'History', 'Geography', 'Civics', 'Economics', 'Computer Science'];
+    }
+  };
+
   const quizTypes = [
     { id: 'subject', name: 'Subject Quiz', icon: BookOpen, color: 'bg-blue-500', desc: 'Focus on one subject' },
     { id: 'current_affairs', name: 'Current Affairs', icon: Globe, color: 'bg-orange-500', desc: 'Recent events' },
@@ -99,41 +119,36 @@ export const QuizMode: React.FC = () => {
             <ArrowLeft size={24} />
           </button>
           <div className="flex-1 text-center pr-10">
-            <h2 className="text-3xl font-black mb-2">Select Your Class</h2>
-            <p className="text-gray-500 dark:text-gray-400">Step 1: Choose your level (1st to 12th)</p>
+            <h2 className="text-3xl font-black mb-2">Select Your Level</h2>
+            <p className="text-gray-500 dark:text-gray-400">Step 1: Choose your school level</p>
           </div>
         </div>
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-          {Array.from({ length: 12 }, (_, i) => `${i + 1}${i === 0 ? 'st' : i === 1 ? 'nd' : i === 2 ? 'rd' : 'th'}`).map(cls => (
+        <div className="grid sm:grid-cols-2 gap-4">
+          {classGroups.map(group => (
             <button
-              key={cls}
-              onClick={() => { setStudentClass(cls); setStep(2); }}
-              className={`p-4 rounded-2xl border-2 transition-all font-black text-sm ${
-                studentClass === cls ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20 text-blue-600' : 'border-gray-100 dark:border-gray-800 hover:border-blue-500'
+              key={group.id}
+              onClick={() => { setClassGroup(group.id as any); setStep(2); }}
+              className={`p-6 rounded-3xl border-2 transition-all text-left ${
+                classGroup === group.id ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-200 dark:border-gray-800 hover:border-blue-500'
               }`}
             >
-              {cls}
+              <h4 className="font-black text-lg mb-1">{group.name}</h4>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{group.desc}</p>
             </button>
           ))}
-          <button
-            onClick={() => { setStudentClass('College'); setStep(2); }}
-            className="col-span-2 p-4 rounded-2xl border-2 transition-all font-black text-sm border-gray-100 dark:border-gray-800 hover:border-blue-500"
-          >
-            College/Other
-          </button>
         </div>
         <button 
-          onClick={() => setStep(2)}
+          onClick={() => { setClassGroup('college'); setStep(2); }}
           className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all"
         >
-          Skip Class Selection
+          Continue
         </button>
       </div>
     );
   }
 
   if (step === 2) {
-    const subjects = ['Math', 'Physics', 'Chemistry', 'Biology', 'English', 'Hindi', 'History', 'Geography', 'Civics', 'Economics', 'Computer Science'];
+    const subjects = getSubjectsForGroup(classGroup || 'college');
     return (
       <div className="space-y-8">
         <div className="flex items-center gap-4">
@@ -186,13 +201,16 @@ export const QuizMode: React.FC = () => {
               ))}
             </div>
             <div className="space-y-3">
-              <input 
-                type="text" 
-                value={topic}
-                onChange={(e) => setTopic(e.target.value)}
-                placeholder="Or type any subject name..."
-                className="w-full px-6 py-4 bg-white dark:bg-[#1e1e1e] border-2 border-gray-200 dark:border-gray-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
-              />
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  placeholder="Or type any subject name..."
+                  className="flex-1 px-6 py-4 bg-white dark:bg-[#1e1e1e] border-2 border-gray-200 dark:border-gray-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                />
+                <SmartMic onResult={(text) => setTopic(prev => prev + ' ' + text)} />
+              </div>
               <button 
                 onClick={handleStartQuiz}
                 disabled={!topic.trim() || loading}

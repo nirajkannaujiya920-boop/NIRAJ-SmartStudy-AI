@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { db, auth } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { SmartMic } from './SmartMic';
 
 export const NotesSummarizer: React.FC = () => {
   const navigate = useNavigate();
@@ -140,15 +141,18 @@ export const NotesSummarizer: React.FC = () => {
         </AnimatePresence>
 
         {!image && (
-          <div className="relative">
+          <div className="relative space-y-2">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Paste your long notes here..."
               className="w-full h-64 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 transition-all resize-none"
             />
-            <div className="absolute bottom-3 right-3 text-xs text-gray-400">
-              {input.length} characters
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-gray-400">
+                {input.length} characters
+              </div>
+              <SmartMic onResult={(text) => setInput(prev => prev + '\n' + text)} />
             </div>
           </div>
         )}

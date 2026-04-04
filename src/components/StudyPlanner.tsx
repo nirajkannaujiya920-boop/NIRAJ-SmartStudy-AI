@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { generateAutoStudyPlan } from '../lib/gemini';
 import { db, auth } from '../firebase';
 import { collection, addDoc, query, where, onSnapshot, deleteDoc, doc, updateDoc, serverTimestamp, orderBy } from 'firebase/firestore';
+import { SmartMic } from './SmartMic';
 
 interface Task {
   id: string;
@@ -145,14 +146,17 @@ export const StudyPlanner: React.FC = () => {
               <form onSubmit={addTask} className="space-y-4">
                 <div className="space-y-2">
                   <label className="text-xs font-black uppercase tracking-widest text-gray-400">Task Title</label>
-                  <input 
-                    type="text" 
-                    required
-                    value={newTask.title}
-                    onChange={e => setNewTask({...newTask, title: e.target.value})}
-                    placeholder="e.g. Revise Physics Chapter 1"
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      required
+                      value={newTask.title}
+                      onChange={e => setNewTask({...newTask, title: e.target.value})}
+                      placeholder="e.g. Revise Physics Chapter 1"
+                      className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <SmartMic onResult={(text) => setNewTask(prev => ({...prev, title: prev.title + ' ' + text}))} />
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">

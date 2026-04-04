@@ -3,6 +3,7 @@ import { Volume2, Play, Pause, SkipBack, SkipForward, BookOpen, Music, Sparkles,
 import { motion, AnimatePresence } from 'motion/react';
 import { generateVoiceExplanation } from '../lib/gemini';
 import { useNavigate } from 'react-router-dom';
+import { SmartMic } from './SmartMic';
 
 export const VoiceLearning: React.FC = () => {
   const navigate = useNavigate();
@@ -13,15 +14,24 @@ export const VoiceLearning: React.FC = () => {
   const [voiceLang, setVoiceLang] = useState<'hindi' | 'english'>('hindi');
 
   const [notes, setNotes] = useState([
-    { title: "Photosynthesis Basics", content: "Photosynthesis is the process by which green plants and some other organisms use sunlight to synthesize foods from carbon dioxide and water." },
-    { title: "Newton's First Law", content: "An object at rest stays at rest and an object in motion stays in motion with the same speed and in the same direction unless acted upon by an unbalanced force." },
-    { title: "Chemical Bonding", content: "A chemical bond is a lasting attraction between atoms, ions or molecules that enables the formation of chemical compounds." }
+    { title: "Photosynthesis (Hindi)", content: "प्रकाश संश्लेषण वह प्रक्रिया है जिसके द्वारा हरे पौधे सूर्य के प्रकाश का उपयोग करके कार्बन डाइऑक्साइड और पानी से भोजन बनाते हैं। यह पृथ्वी पर जीवन के लिए बहुत महत्वपूर्ण है।" },
+    { title: "Newton's Laws (English)", content: "Newton's First Law states that an object will remain at rest or in uniform motion in a straight line unless acted upon by an external force." },
+    { title: "Cell Structure (Hindi)", content: "कोशिका जीवन की सबसे छोटी और बुनियादी इकाई है। सभी जीवित प्राणी कोशिकाओं से बने होते हैं। कोशिका के अंदर केंद्रक, माइटोकॉन्ड्रिया और अन्य अंग होते हैं।" },
+    { title: "Global Warming (English)", content: "Global warming is the long-term heating of Earth's climate system observed since the pre-industrial period due to human activities, primarily fossil fuel burning." },
+    { title: "Indian History (Hindi)", content: "भारत का इतिहास बहुत प्राचीन और समृद्ध है। सिंधु घाटी सभ्यता से लेकर आधुनिक भारत तक, इसमें कई महान राजाओं और स्वतंत्रता सेनानियों का योगदान रहा है।" }
   ]);
+
+  const stripMarkdown = (text: string) => {
+    return text.replace(/[*#_~`>]/g, '').replace(/\[.*?\]\(.*?\)/g, '');
+  };
 
   const togglePlay = (text?: string) => {
     const contentToSpeak = text || notes[currentNote].content;
+    const cleanText = stripMarkdown(contentToSpeak);
+    
     if (!isPlaying) {
-      const utterance = new SpeechSynthesisUtterance(contentToSpeak);
+      window.speechSynthesis.cancel(); // Clear any existing speech
+      const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.lang = voiceLang === 'hindi' ? 'hi-IN' : 'en-US';
       utterance.onend = () => setIsPlaying(false);
       window.speechSynthesis.speak(utterance);
@@ -42,7 +52,8 @@ export const VoiceLearning: React.FC = () => {
       setCurrentNote(0);
       setTopicInput('');
       // Automatically play the new explanation
-      const utterance = new SpeechSynthesisUtterance(explanation);
+      const cleanText = stripMarkdown(explanation);
+      const utterance = new SpeechSynthesisUtterance(cleanText);
       utterance.lang = voiceLang === 'hindi' ? 'hi-IN' : 'en-US';
       utterance.onend = () => setIsPlaying(false);
       window.speechSynthesis.speak(utterance);
@@ -95,9 +106,11 @@ export const VoiceLearning: React.FC = () => {
             type="text" 
             value={topicInput}
             onChange={(e) => setTopicInput(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleExplainTopic()}
             placeholder="Enter topic (e.g. Gravity, Cell, History...)"
             className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
           />
+          <SmartMic onResult={(text) => setTopicInput(prev => prev + ' ' + text)} />
           <button 
             onClick={handleExplainTopic}
             disabled={!topicInput.trim() || loading}

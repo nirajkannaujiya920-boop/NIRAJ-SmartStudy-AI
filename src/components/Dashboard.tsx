@@ -11,7 +11,8 @@ import {
   Award,
   Clock,
   Sparkles,
-  Heart
+  Heart,
+  Mic
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
@@ -66,6 +67,7 @@ export const Dashboard: React.FC = () => {
     { name: 'Summarizer', path: '/summarize', icon: FileText, color: 'bg-orange-500', desc: 'Shorten notes' },
     { name: 'Quiz Mode', path: '/quiz', icon: HelpCircle, color: 'bg-green-500', desc: 'Practice MCQs' },
     { name: 'Study Planner', path: '/planner', icon: Calendar, color: 'bg-pink-500', desc: 'Manage schedule' },
+    { name: 'Voice Assistant', path: '/voice-assistant', icon: Mic, color: 'bg-red-500', desc: 'Talk to NIRAJ AI' },
     { name: 'Progress', path: '/progress', icon: BarChart2, color: 'bg-indigo-500', desc: 'Track growth' },
   ];
 
@@ -205,12 +207,12 @@ export const Dashboard: React.FC = () => {
               <p className="text-sm font-bold opacity-90 flex items-center justify-center gap-2">
                 Made with <Heart size={16} fill="white" className="text-red-400 animate-bounce" /> by 
                 <span className="bg-white/20 px-3 py-1 rounded-full backdrop-blur-md text-yellow-200 font-black">
-                  QUEEN'S COLLEGE STUDENT
+                  NIRAJ KUMAR KANNAUJIYA
                 </span>
               </p>
               <div className="pt-2">
-                <p className="text-2xl font-black tracking-[0.2em] text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.3)] uppercase">
-                  NIRAJ KUMAR KANNAUJIYA
+                <p className="text-xs font-bold text-blue-100 opacity-80 uppercase tracking-widest">
+                  QUEEN'S COLLEGE STUDENT
                 </p>
               </div>
             </div>

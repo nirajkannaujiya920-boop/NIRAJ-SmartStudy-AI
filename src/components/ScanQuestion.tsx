@@ -3,6 +3,8 @@ import { Camera, X, Sparkles, RefreshCw, Brain, ArrowLeft, Save, Check } from 'l
 import { solveFromImage } from '../lib/gemini';
 import { motion } from 'motion/react';
 import Markdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
 import { useNavigate } from 'react-router-dom';
 import { db, auth } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -13,6 +15,7 @@ export const ScanQuestion: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [lang, setLang] = useState<'hindi' | 'english' | 'hinglish'>('hinglish');
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,13 +37,14 @@ export const ScanQuestion: React.FC = () => {
       return;
     }
     setLoading(true);
+    setError(null);
     try {
       const base64 = image.split(',')[1];
       const res = await solveFromImage(base64, lang);
       setResult(res);
     } catch (err: any) {
       console.error(err);
-      alert(err.message || "AI Teacher is currently busy. Please try again later.");
+      setError(err.message || "AI Teacher is currently busy. Please try again later.");
     } finally {
       setLoading(false);
     }
@@ -133,6 +137,18 @@ export const ScanQuestion: React.FC = () => {
                 {loading ? <RefreshCw className="animate-spin" /> : <Sparkles />}
                 {loading ? 'AI is solving...' : 'Solve with AI'}
               </button>
+
+              {error && (
+                <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-2xl text-center">
+                  <p className="text-xs text-red-600 dark:text-red-400 font-bold mb-2">{error}</p>
+                  <button 
+                    onClick={handleSolve}
+                    className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 underline"
+                  >
+                    Try Again Now
+                  </button>
+                </div>
+              )}
             </div>
           ) : (
             <motion.div 
@@ -145,7 +161,12 @@ export const ScanQuestion: React.FC = () => {
                 AI Teacher Explanation
               </div>
               <div className="prose dark:prose-invert max-w-none">
-                <Markdown>{result}</Markdown>
+                <Markdown 
+                  remarkPlugins={[remarkMath]} 
+                  rehypePlugins={[rehypeKatex]}
+                >
+                  {result}
+                </Markdown>
               </div>
               <div className="pt-4 border-t border-gray-100 dark:border-gray-800 flex gap-3">
                 <button 
