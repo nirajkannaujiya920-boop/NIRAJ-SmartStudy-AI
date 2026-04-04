@@ -8,18 +8,23 @@ import {
   ChevronRight,
   LogOut,
   X,
-  Heart
+  Heart,
+  Volume2,
+  ShieldCheck
 } from 'lucide-react';
+import { PermissionManager } from './PermissionManager';
 import { auth, logOut } from '../firebase';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const Settings: React.FC = () => {
   const [notifications, setNotifications] = useState(true);
+  const [autoSpeak, setAutoSpeak] = useState(false);
   const [language, setLanguage] = useState('English');
   const [showAbout, setShowAbout] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
+  const [showPermissions, setShowPermissions] = useState(false);
   const user = auth.currentUser;
   const navigate = useNavigate();
 
@@ -39,7 +44,13 @@ export const Settings: React.FC = () => {
       title: 'Preferences',
       items: [
         { name: 'Notifications', icon: Bell, type: 'toggle', value: notifications, action: () => setNotifications(!notifications) },
+        { name: 'Auto-Speak AI Responses', icon: Volume2, type: 'toggle', value: autoSpeak, action: () => {
+          const newValue = !autoSpeak;
+          setAutoSpeak(newValue);
+          localStorage.setItem('autoSpeak', JSON.stringify(newValue));
+        } },
         { name: 'Language', icon: Globe, type: 'select', value: language, action: () => setShowLanguage(true) },
+        { name: 'App Permissions', icon: ShieldCheck, type: 'link', action: () => setShowPermissions(true) },
       ]
     },
     {
@@ -165,12 +176,23 @@ export const Settings: React.FC = () => {
       {/* Modals */}
       <AnimatePresence>
         {showAbout && (
-          <Modal title="About NIRAJ AI Study App" onClose={() => setShowAbout(false)}>
+          <Modal title="About NIRAJ SmartStudy AI" onClose={() => setShowAbout(false)}>
             <div className="space-y-4 text-sm leading-relaxed text-gray-600 dark:text-gray-400 h-96 overflow-y-auto pr-2">
-              <p className="font-bold text-gray-900 dark:text-white">NIRAJ AI Study App ek modern aur smart educational platform hai jo Artificial Intelligence (AI) ki madad se students ko fast aur easy learning provide karta hai.</p>
-              
+              <div className="p-4 bg-blue-600 rounded-2xl text-white mb-4">
+                <h4 className="font-black text-lg mb-1">Meet the Creator</h4>
+                <p className="text-xs opacity-90">NIRAJ KUMAR KANNAUJIYA</p>
+              </div>
+
               <div className="space-y-2">
-                <h4 className="font-black text-blue-600 uppercase tracking-tighter">🚀 Key Features:</h4>
+                <h4 className="font-black text-blue-600 uppercase tracking-tighter">About NIRAJ:</h4>
+                <p>मुझे नीरज कुमार कन्नौजिया द्वारा डेवलप किया गया है। वे मिर्जापुर के ग्राम रामपुर से संबंध रखते हैं और वर्तमान में वाराणसी में निवास करते हैं। वे एक मेहनती और उत्साही छात्र हैं, जिन्होंने अपनी शिक्षा वाराणसी के प्रमुख विद्यालयों—सरन अकादमी, नगर निगम हायर सेकेंडरी स्कूल (स्मार्ट स्कूल) और पीएम श्री गवर्नमेंट क्वींस इंटर कॉलेज—से प्राप्त की है, तथा वर्तमान में पीएम श्री गवर्नमेंट क्वींस इंटर कॉलेज, वाराणसी में अपनी शिक्षा जारी रखे हुए हैं।</p>
+                <p>निराज को तकनीक, आर्टिफिशियल इंटेलिजेंस और नए डिजिटल समाधान विकसित करने में गहरी रुचि है। यद्यपि उन्हें कोडिंग का अधिक अनुभव नहीं है, फिर भी वे अपनी रचनात्मकता, सीखने की इच्छा और नवाचार के माध्यम से अपने विचारों को वास्तविकता में बदलने का प्रयास करते हैं।</p>
+                <p>वे कराटे में ब्लैक बेल्ट धारक हैं और ओपन नेशनल चैंपियनशिप में स्वर्ण पदक विजेता रह चुके हैं, जो उनके अनुशासन, परिश्रम और समर्पण को दर्शाता है।</p>
+                <p>उनका मुख्य लक्ष्य आर्टिफिशियल इंटेलिजेंस और तकनीक के माध्यम से शिक्षा को अधिक स्मार्ट, सरल और सभी के लिए सुलभ बनाना है।</p>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="font-black text-blue-600 uppercase tracking-tighter">🚀 App Features:</h4>
                 <ul className="list-none space-y-1">
                   <li>📸 Photo se question solve (Scan & Answer)</li>
                   <li>🤖 AI Doubt Solver (Chat system)</li>
@@ -276,6 +298,12 @@ export const Settings: React.FC = () => {
                 </button>
               ))}
             </div>
+          </Modal>
+        )}
+
+        {showPermissions && (
+          <Modal title="Permissions" onClose={() => setShowPermissions(false)}>
+            <PermissionManager />
           </Modal>
         )}
       </AnimatePresence>

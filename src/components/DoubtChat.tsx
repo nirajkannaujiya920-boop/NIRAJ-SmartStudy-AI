@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, BrainCircuit, Sparkles, RefreshCw, User, GraduationCap, ArrowLeft, Camera, Image as ImageIcon, X, Save, Check, Volume2 } from 'lucide-react';
+import { Send, BrainCircuit, Sparkles, RefreshCw, User, GraduationCap, ArrowLeft, Camera, Image as ImageIcon, X, Save, Check, Volume2, ShieldCheck, Trash2, ChevronDown } from 'lucide-react';
+import { NIRAJ_PHOTO_URL } from '../constants';
 import { askDoubtTeacherStyle } from '../lib/gemini';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
@@ -8,7 +9,9 @@ import rehypeKatex from 'rehype-katex';
 import { useNavigate } from 'react-router-dom';
 import { db, auth } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { Logo } from './Logo';
 import { SmartMic } from './SmartMic';
+import { ImagePicker } from './ImagePicker';
 
 export const DoubtChat: React.FC = () => {
   const navigate = useNavigate();
@@ -20,24 +23,67 @@ export const DoubtChat: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState<number | null>(null);
   const [lang, setLang] = useState<'hindi' | 'english' | 'hinglish'>('hinglish');
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (scrollRef.current) {
+    const handleScroll = () => {
+      if (scrollRef.current) {
+        const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+        setShowScrollBottom(scrollHeight - scrollTop - clientHeight > 100);
+      }
+    };
+    const current = scrollRef.current;
+    current?.addEventListener('scroll', handleScroll);
+    return () => current?.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToBottom = () => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
+  };
+
+  const clearChat = () => {
+    if (window.confirm("Are you sure you want to clear the chat history?")) {
+      setMessages([{ role: 'ai', text: "Namaste! Ji han, main NIRAJ AI hoon. Main aapka personal AI Teacher hoon. Aap mujhse koi bhi doubt pooch sakte hain, ya photo bhej kar bhi sawal pooch sakte hain. Main aapko ek teacher ki tarah simple language mein samjhaunga. 😊" }]);
+    }
+  };
+
+  useEffect(() => {
+    if (scrollRef.current && !showScrollBottom) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, showScrollBottom]);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+  const [cameraPermission, setCameraPermission] = useState<PermissionState | 'prompt'>('prompt');
+
+  useEffect(() => {
+    const checkPermission = async () => {
+      try {
+        const result = await navigator.permissions.query({ name: 'camera' as any });
+        setCameraPermission(result.state);
+        result.onchange = () => setCameraPermission(result.state);
+      } catch (e) {
+        console.error("Camera permission check failed", e);
+      }
+    };
+    checkPermission();
+  }, []);
+
+  const requestCameraPermission = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      stream.getTracks().forEach(track => track.stop());
+      setCameraPermission('granted');
+      return true;
+    } catch (e) {
+      setCameraPermission('denied');
+      return false;
     }
+  };
+
+  const handleImageSelect = (base64: string) => {
+    setImage(base64);
   };
 
   const handleSend = async () => {
@@ -59,6 +105,12 @@ export const DoubtChat: React.FC = () => {
       const base64 = userMsg.image ? userMsg.image.split(',')[1] : undefined;
       const res = await askDoubtTeacherStyle(userMsg.text, base64, lang);
       setMessages(prev => [...prev, { role: 'ai', text: res }]);
+      
+      // Auto-speak if enabled
+      const autoSpeak = JSON.parse(localStorage.getItem('autoSpeak') || 'false');
+      if (autoSpeak) {
+        handleSpeak(res);
+      }
       
       // Automatic save to notes
       if (auth.currentUser) {
@@ -140,7 +192,15 @@ export const DoubtChat: React.FC = () => {
             <p className="text-[10px] text-blue-100 opacity-80">"Explain like teacher" style</p>
           </div>
         </div>
-        <div className="flex bg-white/10 p-1 rounded-xl backdrop-blur-md">
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={clearChat}
+            className="p-2 text-blue-100 hover:text-white transition-colors"
+            title="Clear Chat"
+          >
+            <Trash2 size={20} />
+          </button>
+          <div className="flex bg-white/10 p-1 rounded-xl backdrop-blur-md">
           {(['hindi', 'english', 'hinglish'] as const).map((l) => (
             <button
               key={l}
@@ -160,8 +220,9 @@ export const DoubtChat: React.FC = () => {
           Online
         </div>
       </div>
+    </div>
 
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
+    <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth relative">
         <AnimatePresence initial={false}>
           {messages.map((msg, idx) => (
             <motion.div
@@ -176,11 +237,20 @@ export const DoubtChat: React.FC = () => {
                   : 'bg-gray-50 dark:bg-gray-900/50 dark:text-gray-200 rounded-tl-none border border-gray-100 dark:border-gray-800'
               }`}>
                 <div className="flex items-center gap-2 mb-2 opacity-50 text-[10px] font-black uppercase tracking-widest">
-                  {msg.role === 'user' ? <User size={12} /> : <BrainCircuit size={12} />}
-                  {msg.role === 'user' ? 'Aap' : 'AI Teacher'}
+                  {msg.role === 'user' ? (
+                    <User size={12} />
+                  ) : (
+                    <Logo size="sm" className="w-4 h-4" rounded="rounded-full" />
+                  )}
+                  {msg.role === 'user' ? 'Aap' : 'NIRAJ AI'}
                 </div>
                 {msg.image && (
-                  <img src={msg.image} alt="User upload" className="w-full h-32 object-cover rounded-xl mb-2" />
+                  <img 
+                    src={msg.image} 
+                    alt="User upload" 
+                    referrerPolicy="no-referrer"
+                    className="w-full h-48 object-cover rounded-xl mb-3 border border-gray-100 dark:border-gray-800" 
+                  />
                 )}
                 <div className="prose prose-sm dark:prose-invert max-w-none">
                   <Markdown 
@@ -220,6 +290,19 @@ export const DoubtChat: React.FC = () => {
             </motion.div>
           ))}
         </AnimatePresence>
+        <AnimatePresence>
+          {showScrollBottom && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              onClick={scrollToBottom}
+              className="absolute bottom-4 right-4 w-10 h-10 bg-white dark:bg-gray-800 text-blue-600 rounded-full shadow-lg border border-gray-100 dark:border-gray-700 flex items-center justify-center z-10"
+            >
+              <ChevronDown size={20} />
+            </motion.button>
+          )}
+        </AnimatePresence>
         {loading && (
           <div className="flex justify-start">
             <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-2xl rounded-tl-none border border-gray-100 dark:border-gray-800 flex items-center gap-2">
@@ -250,35 +333,31 @@ export const DoubtChat: React.FC = () => {
           )}
         </AnimatePresence>
 
-        <div className="flex gap-2">
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            className="w-14 h-14 bg-gray-100 dark:bg-gray-800 text-gray-500 rounded-2xl flex items-center justify-center hover:bg-gray-200 transition-all"
-          >
-            <Camera size={24} />
-          </button>
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleImageSelect} 
-            accept="image/*" 
-            className="hidden" 
-          />
-          <input 
-            type="text" 
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Ask your doubt or send photo..."
-            className="flex-1 px-6 py-4 bg-white dark:bg-[#1e1e1e] border-2 border-gray-200 dark:border-gray-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
-          />
-          <SmartMic onResult={(text) => setInput(prev => prev + ' ' + text)} />
+        <div className="flex items-end gap-2">
+          <div className="flex-1 space-y-2">
+            <ImagePicker onImageSelect={handleImageSelect} className="mb-2" />
+            <div className="flex gap-2">
+              <input 
+                type="text" 
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                placeholder="Ask your doubt or send photo..."
+                className="flex-1 px-6 py-4 bg-white dark:bg-[#1e1e1e] border-2 border-gray-200 dark:border-gray-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
+              />
+              <SmartMic onResult={(text) => setInput(prev => prev + ' ' + text)} />
+            </div>
+          </div>
           <button 
             onClick={handleSend}
             disabled={(!input.trim() && !image) || loading}
-            className="w-14 h-14 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50"
+            className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-95 disabled:opacity-50 ${
+              loading 
+                ? 'bg-gray-100 dark:bg-gray-800 text-blue-600' 
+                : 'bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-blue-500/20 hover:scale-105'
+            }`}
           >
-            <Send size={24} />
+            {loading ? <RefreshCw size={24} className="animate-spin" /> : <div className="flex flex-col items-center"><Send size={20} /><span className="text-[8px] font-black uppercase">Send</span></div>}
           </button>
         </div>
       </div>

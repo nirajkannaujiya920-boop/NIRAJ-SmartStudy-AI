@@ -15,6 +15,7 @@ import {
   Mic,
   Languages
 } from 'lucide-react';
+import { Logo } from './Logo';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { auth, db } from '../firebase';
@@ -63,13 +64,12 @@ export const Dashboard: React.FC = () => {
   }, [user]);
 
   const features = [
+    { name: 'AI Assistant', path: '/voice-assistant', icon: Zap, color: 'bg-yellow-500', desc: 'Live Talk & Knowledge' },
     { name: 'Scan Question', path: '/scan', icon: Camera, color: 'bg-blue-500', desc: 'Solve with photo' },
     { name: 'Ask Doubt', path: '/doubt', icon: BrainCircuit, color: 'bg-purple-500', desc: 'AI Chat support' },
     { name: 'Summarizer', path: '/summarize', icon: FileText, color: 'bg-orange-500', desc: 'Shorten notes' },
     { name: 'Translator', path: '/translator', icon: Languages, color: 'bg-red-500', desc: 'All language support' },
     { name: 'Quiz Mode', path: '/quiz', icon: HelpCircle, color: 'bg-green-500', desc: 'Practice MCQs' },
-    { name: 'Study Planner', path: '/planner', icon: Calendar, color: 'bg-pink-500', desc: 'Manage schedule' },
-    { name: 'Progress', path: '/progress', icon: BarChart2, color: 'bg-indigo-500', desc: 'Track growth' },
   ];
 
   return (
@@ -110,6 +110,27 @@ export const Dashboard: React.FC = () => {
         </div>
         <div className="absolute -right-8 -bottom-8 w-48 h-48 bg-white/10 rounded-full blur-3xl" />
         <div className="absolute -left-8 -top-8 w-32 h-32 bg-purple-400/20 rounded-full blur-2xl" />
+      </section>
+
+      {/* Quick Access AI Assistant */}
+      <section className="bg-white dark:bg-[#1e1e1e] rounded-3xl p-6 border-2 border-yellow-500/20 shadow-xl shadow-yellow-500/5 relative overflow-hidden group">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <Logo size="sm" className="border-yellow-500 shadow-yellow-500/20" />
+              <span className="text-xs font-black uppercase tracking-widest text-yellow-600 dark:text-yellow-400">Live AI Assistant</span>
+            </div>
+            <h3 className="text-2xl font-black mb-2">Talk to NIRAJ AI</h3>
+            <p className="text-gray-500 dark:text-gray-400 text-sm max-w-md">Experience a human-like conversation with our most powerful AI. It has world-wide knowledge and can help you with anything.</p>
+          </div>
+          <Link 
+            to="/voice-assistant"
+            className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-2xl font-black shadow-xl shadow-yellow-500/20 hover:scale-105 transition-all active:scale-95 group-hover:shadow-yellow-500/40"
+          >
+            Start Live Session <Mic size={20} />
+          </Link>
+        </div>
+        <div className="absolute -right-12 -top-12 w-48 h-48 bg-yellow-500/5 rounded-full blur-3xl group-hover:bg-yellow-500/10 transition-colors" />
       </section>
 
       {/* Main Features Grid */}
@@ -201,7 +222,8 @@ export const Dashboard: React.FC = () => {
         {/* Branding */}
         <div className="p-8 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 rounded-[2.5rem] text-white shadow-2xl shadow-blue-500/30 text-center relative overflow-hidden group">
           <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10" />
-          <div className="relative z-10">
+          <div className="relative z-10 flex flex-col items-center">
+            <Logo size="lg" className="mb-4 shadow-2xl" />
             <h4 className="text-2xl font-black mb-2 tracking-tighter">NIRAJ SmartStudy AI</h4>
             <div className="h-1 w-20 bg-yellow-400 mx-auto rounded-full mb-4 group-hover:w-32 transition-all duration-500" />
             <div className="space-y-2">

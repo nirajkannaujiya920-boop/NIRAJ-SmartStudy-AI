@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrainCircuit, Sparkles, RefreshCw, BookOpen, Target, ArrowRight, Zap, WifiOff } from 'lucide-react';
+import { Logo } from './Logo';
 import { generateAutoStudyPlan } from '../lib/gemini';
 import { db, auth } from '../firebase';
 import { collection, query, where, getDocs, limit, orderBy } from 'firebase/firestore';
@@ -50,9 +51,7 @@ export const AutoStudy: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
         <div className="relative">
-          <div className="w-20 h-20 bg-purple-100 dark:bg-purple-900/20 rounded-3xl flex items-center justify-center text-purple-600 dark:text-purple-400 animate-pulse">
-            <BrainCircuit size={40} />
-          </div>
+          <Logo size="lg" className="w-20 h-20 animate-pulse" rounded="rounded-3xl" />
           <div className="absolute -inset-4 border-2 border-dashed border-purple-500/30 rounded-full animate-spin-slow" />
         </div>
         <div className="text-center">

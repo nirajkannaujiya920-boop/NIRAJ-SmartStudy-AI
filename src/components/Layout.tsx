@@ -16,10 +16,13 @@ import {
   Calendar,
   FileText,
   HelpCircle,
-  Volume2
+  Volume2,
+  Zap,
+  Sparkles
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, logOut } from '../firebase';
+import { Logo } from './Logo';
 import { AdBanner } from './AdBanner';
 import { AdsterraBanner } from './AdsterraBanner';
 import { WifiOff } from 'lucide-react';
@@ -70,6 +73,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const navItems = [
     { name: 'Home', path: '/', icon: Home },
+    { name: 'AI Assistant', path: '/voice-assistant', icon: Zap },
     { name: 'Scan Question', path: '/scan', icon: Camera },
     { name: 'Ask Doubt', path: '/doubt', icon: BrainCircuit },
     { name: 'Summarizer', path: '/summarize', icon: FileText },
@@ -117,9 +121,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             <Menu size={24} />
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
-              <BookOpen size={24} />
-            </div>
+            <Logo size="md" />
             <h1 className="font-black text-lg hidden sm:block tracking-tighter">NIRAJ SmartStudy AI</h1>
           </div>
         </div>
@@ -136,6 +138,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               <img 
                 src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName}`} 
                 alt="Profile" 
+                referrerPolicy="no-referrer"
                 className="w-8 h-8 rounded-full border border-gray-200 dark:border-gray-700"
               />
             </div>
@@ -160,7 +163,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
       <aside className={`fixed top-0 left-0 bottom-0 w-64 bg-white dark:bg-[#1e1e1e] border-r border-gray-200 dark:border-gray-800 z-50 transition-transform duration-300 lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="h-16 flex items-center justify-between px-6 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold">A</div>
+            <Logo size="sm" />
             <span className="font-bold">SmartStudy AI</span>
           </div>
           <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden p-2">
@@ -207,7 +210,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Mobile Bottom Nav */}
       <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-[#1e1e1e] border-t border-gray-200 dark:border-gray-800 z-40 flex items-center justify-around px-2 lg:hidden">
-        {navItems.slice(0, 5).map((item) => (
+        {[navItems[0], navItems[1], navItems[2], navItems[3], navItems[4]].map((item) => (
           <Link
             key={item.path}
             to={item.path}
@@ -222,6 +225,17 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </Link>
         ))}
       </nav>
+
+      {/* Floating AI Assistant Button */}
+      <motion.button
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={() => navigate('/voice-assistant')}
+        className="fixed bottom-20 right-6 z-50 w-14 h-14 bg-gradient-to-br from-blue-600 to-purple-600 text-white rounded-full shadow-2xl flex items-center justify-center border-4 border-white dark:border-gray-800 lg:bottom-8"
+      >
+        <Zap size={28} fill="white" />
+        <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white dark:border-gray-800 animate-pulse" />
+      </motion.button>
     </div>
   );
 };

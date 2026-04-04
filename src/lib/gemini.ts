@@ -1,5 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
+import { NIRAJ_PHOTO_URL, CREATOR_INFO } from "../constants";
+
 const apiKey = process.env.GEMINI_API_KEY || "AIzaSyBC8JYIHmbtOD4MWepyc74d6nYrZNHjLv4";
 const ai = new GoogleGenAI({ apiKey });
 
@@ -136,21 +138,37 @@ export async function summarizeFromImage(base64Image: string) {
 export async function askVoiceAssistant(query: string) {
   const prompt = `You are a smart, fast and helpful AI study assistant for the app "NIRAJ SmartStudy AI".
 Your creator is NIRAJ KUMAR KANNAUJIYA.
+
+CREATOR INFORMATION RULES:
+1. If anyone asks "Who created you?" or "Who made you?" or "Tumhe kisne banaya?" or "Creator kaun hai?", ALWAYS reply with ONLY: "NIRAJ KUMAR KANNAUJIYA".
+2. If anyone asks for details about the creator, or asks "Tell me more about him" or "Uske bare mein batao", reply with this detailed information in the language of the query:
+   
+   HINDI:
+   "${CREATOR_INFO.detailed.hi}"
+   
+   ENGLISH:
+   "${CREATOR_INFO.detailed.en}"
+
+3. Answer ONLY what is asked. If they ask for the name, give ONLY the name. If they ask for details, give the details.
+
+SELF-CORRECTION RULE:
+If the user tells you that you have written something wrong or suggests a correction, admit the mistake humbly and provide the corrected version.
+
 Rules:
 1. Answer in simple language.
 2. Support both Hindi and English.
-3. If the user asks in Hindi, reply in Hindi. If in English, reply in English.
-4. Solve math problems (like "2+3") and answer study questions.
-5. Keep answers VERY SHORT and CLEAR (max 2-3 sentences).
-6. Do not use any markdown symbols like *, #, _, etc. in your response as it will be read aloud.
-7. Be friendly and professional.
+3. Keep answers VERY SHORT and CLEAR (max 2-3 sentences) unless asked for details.
+4. Do not use any markdown symbols like *, #, _, etc. in your response as it will be read aloud.
 
 User Query: ${query}`;
 
   try {
     const response = await safeGenerateContent({
       model: geminiModel,
-      contents: [{ parts: [{ text: prompt }] }]
+      contents: [{ parts: [{ text: prompt }] }],
+      config: {
+        tools: [{ googleSearch: {} }]
+      }
     });
     return response.text;
   } catch (err) {
@@ -255,7 +273,20 @@ export async function askDoubtTeacherStyle(question: string, base64Image?: strin
     3. If language is Hindi, use ONLY Hindi. If English, use ONLY English. If Hinglish, use a mix of Hindi and English.
     4. Be very concise. Answer ONLY what is asked. Do not give long unnecessary details.
     5. ALWAYS start with a polite greeting in the selected language. For example, in Hindi: "Namaste! Main NIRAJ AI hoon. Main aapki kaise madad kar sakta hoon?".
-    6. If anyone asks "Who created you?" or "Who made you?" or "Tumhe kisne banaya?", ALWAYS reply that you were created by "NIRAJ KUMAR KANNAUJIYA" in a smart and professional way.
+    
+    CREATOR INFORMATION RULES:
+    1. If anyone asks "Who created you?" or "Who made you?" or "Tumhe kisne banaya?" or "Creator kaun hai?", ALWAYS reply with ONLY: "NIRAJ KUMAR KANNAUJIYA".
+    2. If anyone asks for details about the creator, or asks "Tell me more about him" or "Uske bare mein batao", reply with this detailed information in the language of the query:
+       
+       HINDI:
+       "${CREATOR_INFO.detailed.hi}"
+       
+       ENGLISH:
+       "${CREATOR_INFO.detailed.en}"
+
+    3. Answer ONLY what is asked. If they ask for the name, give ONLY the name. If they ask for details, give the details.
+
+    6. SELF-CORRECTION RULE: If the user points out a mistake or provides a correction (e.g., "इसे ऐसे लिखा जाता है"), verify it carefully and provide the corrected explanation humbly.
     7. Use simple language and analogies.
     8. End with a short 'Teacher's Tip' in the selected language.
     9. For math formulas, ALWAYS use standard LaTeX with $ for inline math and $$ for block math.
@@ -307,4 +338,37 @@ export async function generateVoiceExplanation(topic: string, language: 'hindi' 
     contents: prompt,
   });
   return response.text;
+}
+
+export async function analyzePerformance(stats: any, quizResults: any[], notesCount: number, tasksStats: any) {
+  const prompt = `Analyze this student's learning performance:
+    - Average Quiz Score: ${stats.avgScore}%
+    - Total Quizzes: ${stats.totalQuizzes}
+    - Best Subject: ${stats.bestSubject}
+    - Notes Created: ${notesCount}
+    - Tasks Completed: ${tasksStats.completed}/${tasksStats.total}
+    - Recent Quiz History: ${JSON.stringify(quizResults.slice(0, 5))}
+
+    Provide a deep, professional analysis of their study habits, weak areas, and a smart recommendation for improvement. 
+    Keep it professional, encouraging, and modern. 
+    Return as a JSON object with keys: 'summary', 'strengths' (array), 'weaknesses' (array), 'recommendation'.`;
+
+  const response = await safeGenerateContent({
+    model: geminiModel,
+    contents: prompt,
+    config: {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          summary: { type: Type.STRING },
+          strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
+          weaknesses: { type: Type.ARRAY, items: { type: Type.STRING } },
+          recommendation: { type: Type.STRING }
+        },
+        required: ["summary", "strengths", "weaknesses", "recommendation"]
+      }
+    }
+  });
+  return JSON.parse(response.text || "{}");
 }

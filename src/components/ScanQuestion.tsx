@@ -9,6 +9,8 @@ import { useNavigate } from 'react-router-dom';
 import { db, auth } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 
+import { ImagePicker } from './ImagePicker';
+
 export const ScanQuestion: React.FC = () => {
   const navigate = useNavigate();
   const [image, setImage] = useState<string | null>(null);
@@ -18,16 +20,9 @@ export const ScanQuestion: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [lang, setLang] = useState<'hindi' | 'english' | 'hinglish'>('hinglish');
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result as string);
-        setResult('');
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleImageUpload = (base64: string) => {
+    setImage(base64);
+    setResult('');
   };
 
   const handleSolve = async () => {
@@ -92,7 +87,7 @@ export const ScanQuestion: React.FC = () => {
       </div>
 
       {!image ? (
-        <div className="bg-white dark:bg-[#1e1e1e] rounded-3xl p-10 border-2 border-dashed border-gray-200 dark:border-gray-800 flex flex-col items-center justify-center space-y-4">
+        <div className="bg-white dark:bg-[#1e1e1e] rounded-3xl p-10 border-2 border-dashed border-gray-200 dark:border-gray-800 flex flex-col items-center justify-center space-y-6">
           <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-full flex items-center justify-center">
             <Camera size={40} />
           </div>
@@ -100,18 +95,22 @@ export const ScanQuestion: React.FC = () => {
             <p className="font-bold text-lg">Question ki photo kheecho</p>
             <p className="text-sm text-gray-400">Math, Science, English sabka answer</p>
           </div>
-          <label className="px-8 py-4 bg-blue-600 text-white rounded-2xl font-bold cursor-pointer shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95">
-            Open Camera / Upload
-            <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
-          </label>
+          <div className="w-full max-w-xs">
+            <ImagePicker onImageSelect={handleImageUpload} />
+          </div>
         </div>
       ) : (
         <div className="space-y-6">
           <div className="relative rounded-3xl overflow-hidden border border-gray-200 dark:border-gray-800 shadow-lg">
-            <img src={image} alt="Question" className="w-full h-64 object-cover" />
+            <img 
+              src={image} 
+              alt="Question" 
+              referrerPolicy="no-referrer"
+              className="w-full h-64 object-cover" 
+            />
             <button 
-              onClick={() => { setImage(null); setResult(''); }}
-              className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full backdrop-blur-md"
+              onClick={() => { setImage(null); setResult(''); setError(null); }}
+              className="absolute top-4 right-4 p-2 bg-black/50 text-white rounded-full backdrop-blur-md hover:bg-black/70 transition-all"
             >
               <X size={20} />
             </button>

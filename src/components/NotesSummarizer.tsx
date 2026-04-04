@@ -8,6 +8,8 @@ import { db, auth } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { SmartMic } from './SmartMic';
 
+import { ImagePicker } from './ImagePicker';
+
 export const NotesSummarizer: React.FC = () => {
   const navigate = useNavigate();
   const [input, setInput] = useState('');
@@ -17,17 +19,9 @@ export const NotesSummarizer: React.FC = () => {
   const [copied, setCopied] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImage(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
+  const handleImageSelect = (base64: string) => {
+    setImage(base64);
   };
 
   const handleSummarize = async () => {
@@ -99,26 +93,8 @@ export const NotesSummarizer: React.FC = () => {
       </div>
 
       <div className="bg-white dark:bg-[#1e1e1e] rounded-2xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm space-y-4">
-        <div className="flex items-center gap-2 mb-2">
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            className="flex-1 py-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-100 transition-all"
-          >
-            <ImageIcon size={20} /> Upload Photo
-          </button>
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            className="flex-1 py-3 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-purple-100 transition-all"
-          >
-            <Camera size={20} /> Take Photo
-          </button>
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            onChange={handleImageSelect} 
-            accept="image/*" 
-            className="hidden" 
-          />
+        <div className="mb-2">
+          <ImagePicker onImageSelect={handleImageSelect} />
         </div>
 
         <AnimatePresence>

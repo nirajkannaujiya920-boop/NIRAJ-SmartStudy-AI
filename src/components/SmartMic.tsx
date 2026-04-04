@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Mic, MicOff, Languages, RefreshCw, X, Check } from 'lucide-react';
+import { Mic, MicOff, Languages, RefreshCw, X, Check, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { translateText } from '../lib/gemini';
+import { PermissionManager } from './PermissionManager';
 
 interface SmartMicProps {
   onResult: (text: string) => void;
@@ -17,6 +18,37 @@ export const SmartMic: React.FC<SmartMicProps> = ({ onResult, placeholder, class
   const [targetLang, setTargetLang] = useState('Hindi');
   const [isTranslating, setIsTranslating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [permissionStatus, setPermissionStatus] = useState<PermissionState | 'prompt'>('prompt');
+  const [showPermissionManager, setShowPermissionManager] = useState(false);
+
+  useEffect(() => {
+    const checkPermission = async () => {
+      try {
+        if (navigator.permissions && navigator.permissions.query) {
+          const result = await navigator.permissions.query({ name: 'microphone' as any });
+          setPermissionStatus(result.state);
+          result.onchange = () => setPermissionStatus(result.state);
+        }
+      } catch (e) {
+        console.error("Permission check failed", e);
+      }
+    };
+    checkPermission();
+  }, []);
+
+  const requestPermission = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop());
+      setPermissionStatus('granted');
+      setError(null);
+      return true;
+    } catch (e) {
+      setPermissionStatus('denied');
+      setError("Mic permission denied. Please allow mic access in browser settings.");
+      return false;
+    }
+  };
 
   const languages = [
     'Hindi', 'English', 'Sanskrit', 'French', 'German', 'Spanish', 'Japanese', 'Korean', 'Arabic', 'Russian'
@@ -50,7 +82,10 @@ export const SmartMic: React.FC<SmartMicProps> = ({ onResult, placeholder, class
         recognition.onerror = (event: any) => {
           console.error('Speech recognition error', event.error);
           if (event.error === 'not-allowed') {
-            setError('Mic permission denied. Please allow mic access.');
+            setError('Mic permission denied. Please click the "Allow" button in your browser or check settings.');
+            setPermissionStatus('denied');
+          } else if (event.error === 'no-speech') {
+            // Ignore no-speech errors to keep listening
           } else {
             setError(`Error: ${event.error}`);
           }
@@ -109,10 +144,21 @@ export const SmartMic: React.FC<SmartMicProps> = ({ onResult, placeholder, class
     setShowTranslate(false);
   };
 
+  const toggleMic = async () => {
+    if (isListening) {
+      setIsListening(false);
+    } else {
+      const granted = await requestPermission();
+      if (granted) {
+        setIsListening(true);
+      }
+    }
+  };
+
   return (
     <div className={`relative ${className}`}>
       <button
-        onClick={() => setIsListening(!isListening)}
+        onClick={toggleMic}
         className={`p-3 rounded-2xl transition-all shadow-lg ${
           isListening 
             ? 'bg-red-500 text-white animate-pulse' 
@@ -163,8 +209,24 @@ export const SmartMic: React.FC<SmartMicProps> = ({ onResult, placeholder, class
             </div>
 
             {error && (
-              <div className="mb-3 p-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[10px] rounded-lg border border-red-100 dark:border-red-900/30">
-                {error}
+              <div className="mb-3 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[10px] rounded-xl border border-red-100 dark:border-red-900/30 flex flex-col gap-2">
+                <p className="flex items-center gap-1"><ShieldCheck size={12} /> {error}</p>
+                {permissionStatus === 'denied' && (
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={requestPermission}
+                      className="px-3 py-1.5 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-all self-start"
+                    >
+                      Allow Mic
+                    </button>
+                    <button 
+                      onClick={() => setShowPermissionManager(true)}
+                      className="px-3 py-1.5 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-all self-start"
+                    >
+                      How to Fix?
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -220,6 +282,28 @@ export const SmartMic: React.FC<SmartMicProps> = ({ onResult, placeholder, class
               )}
             </AnimatePresence>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showPermissionManager && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowPermissionManager(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white dark:bg-[#1e1e1e] w-full max-w-md rounded-[32px] p-6 shadow-2xl relative z-10"
+            >
+              <PermissionManager onClose={() => setShowPermissionManager(false)} />
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </div>

@@ -53,7 +53,7 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
             className="absolute left-0 bottom-0 w-[40%] h-[80%] z-10 hidden md:block"
           >
             <img 
-              src={mascotUrl} 
+              src={mascotUrl || undefined} 
               alt="Mascot" 
               className="w-full h-full object-contain object-bottom filter drop-shadow-[0_0_20px_rgba(59,130,246,0.3)]"
               style={{ mixBlendMode: 'lighten' }}
