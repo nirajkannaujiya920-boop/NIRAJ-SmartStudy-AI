@@ -15,7 +15,7 @@ export interface StudyNote {
   content: string;
   summary?: string;
   imageUrl?: string;
-  createdAt: string;
+  createdAt: any;
   subject: string;
 }
 
@@ -25,7 +25,8 @@ export interface QuizResult {
   subject: string;
   score: number;
   total: number;
-  date: string;
+  date?: string;
+  timestamp?: any;
 }
 
 export interface StudyTask {

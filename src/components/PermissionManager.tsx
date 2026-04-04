@@ -88,18 +88,20 @@ export const PermissionManager: React.FC<{ onClose?: () => void }> = ({ onClose 
         </div>
 
         {isDenied && (
-          <div className="p-3 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-900/30 flex flex-col gap-2">
-            <div className="flex items-start gap-2">
-              <AlertCircle size={14} className="text-red-500 mt-0.5 shrink-0" />
-              <p className="text-[10px] text-red-600 dark:text-red-400 font-medium">
-                Permission is blocked by your browser. You need to manually enable it.
+          <div className="p-4 bg-blue-50/50 dark:bg-blue-900/10 rounded-2xl border border-blue-100/50 dark:border-blue-900/20 flex flex-col gap-3">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-white dark:bg-gray-800 rounded-lg flex items-center justify-center shadow-sm shrink-0">
+                <AlertCircle size={16} className="text-blue-600 dark:text-blue-400" />
+              </div>
+              <p className="text-[11px] text-gray-600 dark:text-gray-300 leading-relaxed font-medium">
+                Access is currently restricted by your browser. To use this feature, please enable it in your site settings.
               </p>
             </div>
             <button 
               onClick={() => setShowGuide(type)}
-              className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 flex items-center gap-1 hover:underline"
+              className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 flex items-center gap-1.5 hover:underline bg-white dark:bg-gray-800 px-3 py-2 rounded-lg self-start shadow-sm"
             >
-              <Info size={12} /> How to unblock?
+              <Info size={12} /> Setup Instructions
             </button>
           </div>
         )}
@@ -127,11 +129,11 @@ export const PermissionManager: React.FC<{ onClose?: () => void }> = ({ onClose 
         <PermissionItem type="camera" icon={Camera} label="Camera Access" />
       </div>
 
-      <div className="p-4 bg-yellow-50 dark:bg-yellow-900/10 rounded-2xl border border-yellow-100 dark:border-yellow-900/30">
-        <h4 className="text-xs font-black text-yellow-700 dark:text-yellow-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-          <Info size={14} /> Important Note
+      <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 rounded-2xl border border-blue-100 dark:border-blue-900/20">
+        <h4 className="text-xs font-black text-blue-700 dark:text-blue-400 uppercase tracking-widest mb-2 flex items-center gap-2">
+          <Info size={14} /> Quick Setup Guide
         </h4>
-        <p className="text-[11px] text-yellow-800 dark:text-yellow-300 leading-relaxed">
+        <p className="text-[11px] text-blue-800/70 dark:text-blue-300/70 leading-relaxed">
           Agar permission block hai, toh browser ke address bar me <b>Lock Icon</b> 🔒 ya <b>Camera/Mic Icon</b> par click karke "Allow" karein.
         </p>
       </div>

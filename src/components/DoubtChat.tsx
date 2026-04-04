@@ -175,21 +175,21 @@ export const DoubtChat: React.FC = () => {
   };
 
   return (
-    <div className="h-[calc(100vh-12rem)] flex flex-col bg-white dark:bg-[#1e1e1e] rounded-3xl border border-gray-200 dark:border-gray-800 shadow-xl overflow-hidden">
-      <div className="p-4 bg-blue-600 text-white flex items-center justify-between">
-        <div className="flex items-center gap-3">
+    <div className="h-[calc(100vh-180px)] sm:h-[calc(100vh-200px)] flex flex-col bg-white dark:bg-[#1e1e1e] rounded-2xl border border-gray-200 dark:border-gray-800 shadow-xl overflow-hidden">
+      <div className="p-3 bg-blue-600 text-white flex items-center justify-between">
+        <div className="flex items-center gap-2">
           <button 
             onClick={() => navigate('/')}
-            className="p-2 hover:bg-white/20 rounded-xl transition-colors"
+            className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
           >
-            <ArrowLeft size={20} />
+            <ArrowLeft size={18} />
           </button>
-          <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-md">
-            <GraduationCap size={24} />
+          <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center backdrop-blur-md">
+            <GraduationCap size={20} />
           </div>
           <div>
-            <h3 className="font-black text-sm uppercase tracking-widest">AI Teacher Mode</h3>
-            <p className="text-[10px] text-blue-100 opacity-80">"Explain like teacher" style</p>
+            <h3 className="font-black text-xs uppercase tracking-widest">AI Teacher</h3>
+            <p className="text-[8px] text-blue-100 opacity-80">Explain like teacher</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -222,7 +222,7 @@ export const DoubtChat: React.FC = () => {
       </div>
     </div>
 
-    <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth relative">
+    <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-3 scroll-smooth relative">
         <AnimatePresence initial={false}>
           {messages.map((msg, idx) => (
             <motion.div
@@ -231,16 +231,16 @@ export const DoubtChat: React.FC = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
-              <div className={`max-w-[85%] p-4 rounded-2xl shadow-sm relative group ${
+              <div className={`max-w-[85%] p-3 rounded-xl shadow-sm relative group ${
                 msg.role === 'user' 
                   ? 'bg-blue-600 text-white rounded-tr-none' 
                   : 'bg-gray-50 dark:bg-gray-900/50 dark:text-gray-200 rounded-tl-none border border-gray-100 dark:border-gray-800'
               }`}>
-                <div className="flex items-center gap-2 mb-2 opacity-50 text-[10px] font-black uppercase tracking-widest">
+                <div className="flex items-center gap-2 mb-1.5 opacity-50 text-[8px] font-black uppercase tracking-widest">
                   {msg.role === 'user' ? (
-                    <User size={12} />
+                    <User size={10} />
                   ) : (
-                    <Logo size="sm" className="w-4 h-4" rounded="rounded-full" />
+                    <Logo size="sm" className="w-3 h-3" rounded="rounded-full" />
                   )}
                   {msg.role === 'user' ? 'Aap' : 'NIRAJ AI'}
                 </div>
@@ -249,10 +249,10 @@ export const DoubtChat: React.FC = () => {
                     src={msg.image} 
                     alt="User upload" 
                     referrerPolicy="no-referrer"
-                    className="w-full h-48 object-cover rounded-xl mb-3 border border-gray-100 dark:border-gray-800" 
+                    className="w-full h-32 object-cover rounded-lg mb-2 border border-gray-100 dark:border-gray-800" 
                   />
                 )}
-                <div className="prose prose-sm dark:prose-invert max-w-none">
+                <div className="prose prose-xs dark:prose-invert max-w-none">
                   <Markdown 
                     remarkPlugins={[remarkMath]} 
                     rehypePlugins={[rehypeKatex]}
@@ -313,21 +313,21 @@ export const DoubtChat: React.FC = () => {
         )}
       </div>
 
-      <div className="p-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/20 space-y-4">
+      <div className="p-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/20 space-y-3">
         <AnimatePresence>
           {image && (
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
-              className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-blue-500"
+              className="relative w-16 h-16 rounded-lg overflow-hidden border-2 border-blue-500"
             >
               <img src={image} alt="Preview" className="w-full h-full object-cover" />
               <button 
                 onClick={() => setImage(null)}
                 className="absolute top-1 right-1 p-0.5 bg-black/50 text-white rounded-full"
               >
-                <X size={12} />
+                <X size={10} />
               </button>
             </motion.div>
           )}
@@ -335,15 +335,15 @@ export const DoubtChat: React.FC = () => {
 
         <div className="flex items-end gap-2">
           <div className="flex-1 space-y-2">
-            <ImagePicker onImageSelect={handleImageSelect} className="mb-2" />
+            <ImagePicker onImageSelect={handleImageSelect} className="mb-1" />
             <div className="flex gap-2">
               <input 
                 type="text" 
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                placeholder="Ask your doubt or send photo..."
-                className="flex-1 px-6 py-4 bg-white dark:bg-[#1e1e1e] border-2 border-gray-200 dark:border-gray-800 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm"
+                placeholder="Ask doubt..."
+                className="flex-1 px-4 py-3 bg-white dark:bg-[#1e1e1e] border-2 border-gray-200 dark:border-gray-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all shadow-sm text-sm"
               />
               <SmartMic onResult={(text) => setInput(prev => prev + ' ' + text)} />
             </div>
@@ -351,13 +351,13 @@ export const DoubtChat: React.FC = () => {
           <button 
             onClick={handleSend}
             disabled={(!input.trim() && !image) || loading}
-            className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-all active:scale-95 disabled:opacity-50 ${
+            className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg transition-all active:scale-95 disabled:opacity-50 ${
               loading 
                 ? 'bg-gray-100 dark:bg-gray-800 text-blue-600' 
                 : 'bg-gradient-to-br from-blue-600 to-purple-600 text-white shadow-blue-500/20 hover:scale-105'
             }`}
           >
-            {loading ? <RefreshCw size={24} className="animate-spin" /> : <div className="flex flex-col items-center"><Send size={20} /><span className="text-[8px] font-black uppercase">Send</span></div>}
+            {loading ? <RefreshCw size={20} className="animate-spin" /> : <div className="flex flex-col items-center"><Send size={16} /><span className="text-[7px] font-black uppercase">Send</span></div>}
           </button>
         </div>
       </div>

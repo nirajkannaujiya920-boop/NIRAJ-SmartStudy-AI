@@ -209,23 +209,35 @@ export const SmartMic: React.FC<SmartMicProps> = ({ onResult, placeholder, class
             </div>
 
             {error && (
-              <div className="mb-3 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-[10px] rounded-xl border border-red-100 dark:border-red-900/30 flex flex-col gap-2">
-                <p className="flex items-center gap-1"><ShieldCheck size={12} /> {error}</p>
+              <div className="mb-3 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-800 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/20 text-blue-600 rounded-xl flex items-center justify-center shrink-0">
+                    <ShieldCheck size={20} />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold">Mic Access Required</h4>
+                    <p className="text-[10px] text-gray-400">Please enable microphone access</p>
+                  </div>
+                </div>
+                
                 {permissionStatus === 'denied' && (
                   <div className="flex gap-2">
                     <button 
                       onClick={requestPermission}
-                      className="px-3 py-1.5 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-all self-start"
+                      className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-[10px] font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/10"
                     >
-                      Allow Mic
+                      Grant Access
                     </button>
                     <button 
                       onClick={() => setShowPermissionManager(true)}
-                      className="px-3 py-1.5 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-all self-start"
+                      className="flex-1 py-2 bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300 rounded-lg text-[10px] font-bold hover:bg-gray-300 dark:hover:bg-gray-700 transition-all"
                     >
                       How to Fix?
                     </button>
                   </div>
+                )}
+                {!permissionStatus || permissionStatus !== 'denied' && (
+                  <p className="text-[10px] text-red-500 font-medium">{error}</p>
                 )}
               </div>
             )}

@@ -2,8 +2,17 @@ import { GoogleGenAI, Type } from "@google/genai";
 
 import { NIRAJ_PHOTO_URL, CREATOR_INFO } from "../constants";
 
-const apiKey = process.env.GEMINI_API_KEY || "AIzaSyBC8JYIHmbtOD4MWepyc74d6nYrZNHjLv4";
-const ai = new GoogleGenAI({ apiKey });
+const apiKey = process.env.GEMINI_API_KEY;
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+
+// Other keys from environment only
+export const EXTRA_KEYS = {
+  openai: process.env.OPENAI_API_KEY || "",
+  sambanova: process.env.SAMBANOVA_API_KEY || "",
+  studyai: process.env.STUDYAI_API_KEY || "",
+  extra: process.env.EXTRA_API_KEY || "",
+  longToken: process.env.LONG_TOKEN_100 || ""
+};
 
 export const geminiModel = "gemini-3-flash-preview";
 export const fallbackModel = "gemini-3.1-pro-preview";
@@ -21,6 +30,9 @@ export async function safeGenerateContent(params: any, retries = 5, delay = 5000
 
   for (let i = 0; i < retries; i++) {
     try {
+      if (!ai) {
+        throw new Error("API_KEY_MISSING: Kripya Settings mein Gemini API Key daalein.");
+      }
       // Use the current model for this attempt
       const response = await ai.models.generateContent({
         ...params,
