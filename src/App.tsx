@@ -14,13 +14,13 @@ import { ScanQuestion } from './components/ScanQuestion';
 import { DoubtChat } from './components/DoubtChat';
 import { NotesSummarizer } from './components/NotesSummarizer';
 import { QuizMode } from './components/QuizMode';
+import { Translator } from './components/Translator';
 import { StudyPlanner } from './components/StudyPlanner';
 import { NotesStorage } from './components/NotesStorage';
 import { ProgressTracker } from './components/ProgressTracker';
 import { Settings } from './components/Settings';
 import { AutoStudy } from './components/AutoStudy';
 import { VoiceLearning } from './components/VoiceLearning';
-import { VoiceAssistant } from './components/VoiceAssistant';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogIn, GraduationCap, Sparkles } from 'lucide-react';
 
@@ -188,13 +188,13 @@ export default function App() {
         <Route path="/doubt" element={<Layout><DoubtChat /></Layout>} />
         <Route path="/summarize" element={<Layout><NotesSummarizer /></Layout>} />
         <Route path="/quiz" element={<Layout><QuizMode /></Layout>} />
+        <Route path="/translator" element={<Layout><Translator /></Layout>} />
         <Route path="/planner" element={<Layout><StudyPlanner /></Layout>} />
         <Route path="/notes" element={<Layout><NotesStorage /></Layout>} />
         <Route path="/progress" element={<Layout><ProgressTracker /></Layout>} />
         <Route path="/settings" element={<Layout><Settings /></Layout>} />
         <Route path="/auto-study" element={<Layout><AutoStudy /></Layout>} />
         <Route path="/voice" element={<Layout><VoiceLearning /></Layout>} />
-        <Route path="/voice-assistant" element={<Layout><VoiceAssistant /></Layout>} />
 
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>

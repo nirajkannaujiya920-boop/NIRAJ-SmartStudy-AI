@@ -27,12 +27,15 @@ export const QuizMode: React.FC = () => {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
 
+  const [error, setError] = useState<string | null>(null);
+
   const handleStartQuiz = async () => {
     if (!navigator.onLine) {
-      alert("AI Quiz generation requires an internet connection.");
+      setError("AI Quiz generation requires an internet connection.");
       return;
     }
     setLoading(true);
+    setError(null);
     try {
       let res;
       if (quizType === 'subject' && topic.trim()) {
@@ -49,7 +52,7 @@ export const QuizMode: React.FC = () => {
       setStep(3); // Go to quiz screen
     } catch (err: any) {
       console.error(err);
-      alert(err.message || "Failed to generate quiz. Please try again.");
+      setError(err.message || "Failed to generate quiz. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -180,6 +183,28 @@ export const QuizMode: React.FC = () => {
             </button>
           ))}
         </div>
+
+        {error && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="p-6 bg-red-50 dark:bg-red-900/20 border-2 border-red-100 dark:border-red-800 rounded-3xl text-center space-y-4"
+          >
+            <div className="w-12 h-12 bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-full flex items-center justify-center mx-auto">
+              <XCircle size={24} />
+            </div>
+            <div>
+              <h4 className="font-black text-red-600 dark:text-red-400">AI_ERROR: Kuch galat ho gaya</h4>
+              <p className="text-xs text-red-500 dark:text-red-400/70 mt-1">{error}</p>
+            </div>
+            <button 
+              onClick={handleStartQuiz}
+              className="px-6 py-2 bg-red-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-red-500/20 hover:bg-red-700 transition-all"
+            >
+              Retry Now
+            </button>
+          </motion.div>
+        )}
 
         {quizType === 'subject' && (
           <motion.div 

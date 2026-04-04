@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const apiKey = process.env.GEMINI_API_KEY || "";
+const apiKey = process.env.GEMINI_API_KEY || "AIzaSyAm32qnBFO66NU3GOsypG8-6cK2s-Q_tco";
 const ai = new GoogleGenAI({ apiKey });
 
 export const geminiModel = "gemini-3-flash-preview";
@@ -83,7 +83,8 @@ export async function safeGenerateContent(params: any, retries = 5, delay = 5000
         throw new Error("SAFETY_ERROR: Maaf kijiye, main is sawal ka jawab nahi de sakta kyunki yeh safety guidelines ke khilaaf hai. (Safety filter blocked the response.)");
       }
 
-      throw new Error("AI_ERROR: Kuch galat ho gaya. Kripya internet check karein aur phir se try karein. (Something went wrong with the AI.)");
+      const actualErrorMessage = error?.message || (typeof error === 'string' ? error : JSON.stringify(error));
+      throw new Error(`AI_ERROR: Kuch galat ho gaya. (${actualErrorMessage})`);
     }
   }
   throw new Error("AI_ERROR: Maximum retries reached.");

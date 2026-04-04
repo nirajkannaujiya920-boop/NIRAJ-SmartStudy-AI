@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, BrainCircuit, Sparkles, RefreshCw, User, GraduationCap, ArrowLeft, Camera, Image as ImageIcon, X, Save, Check } from 'lucide-react';
+import { Send, BrainCircuit, Sparkles, RefreshCw, User, GraduationCap, ArrowLeft, Camera, Image as ImageIcon, X, Save, Check, Volume2 } from 'lucide-react';
 import { askDoubtTeacherStyle } from '../lib/gemini';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
@@ -88,6 +88,16 @@ export const DoubtChat: React.FC = () => {
       setMessages(prev => prev.filter((m, i) => i !== prev.length - 1)); // Remove last user message (it will be re-added)
       handleSend();
     }
+  };
+
+  const handleSpeak = (t: string) => {
+    if (!t) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(t.replace(/[#*`_]/g, ''));
+    if (lang === 'hindi') utterance.lang = 'hi-IN';
+    else if (lang === 'english') utterance.lang = 'en-US';
+    else utterance.lang = 'hi-IN'; // Default for hinglish
+    window.speechSynthesis.speak(utterance);
   };
 
   const saveToNotes = async (text: string, index: number) => {
@@ -185,13 +195,22 @@ export const DoubtChat: React.FC = () => {
                   </button>
                 )}
                 {msg.role === 'ai' && idx > 0 && !(msg as any).isError && (
-                  <button 
-                    onClick={() => saveToNotes(msg.text, idx)}
-                    className="absolute -right-10 top-0 p-2 text-gray-400 hover:text-blue-500 opacity-0 group-hover:opacity-100 transition-all"
-                    title="Save to Notes"
-                  >
-                    {saving === idx ? <Check size={16} className="text-green-500" /> : <Save size={16} />}
-                  </button>
+                  <div className="absolute -right-10 top-0 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                    <button 
+                      onClick={() => handleSpeak(msg.text)}
+                      className="p-2 text-gray-400 hover:text-blue-500"
+                      title="Listen"
+                    >
+                      <Volume2 size={16} />
+                    </button>
+                    <button 
+                      onClick={() => saveToNotes(msg.text, idx)}
+                      className="p-2 text-gray-400 hover:text-blue-500"
+                      title="Save to Notes"
+                    >
+                      {saving === idx ? <Check size={16} className="text-green-500" /> : <Save size={16} />}
+                    </button>
+                  </div>
                 )}
               </div>
             </motion.div>

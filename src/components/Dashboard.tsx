@@ -12,7 +12,8 @@ import {
   Clock,
   Sparkles,
   Heart,
-  Mic
+  Mic,
+  Languages
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
@@ -65,9 +66,9 @@ export const Dashboard: React.FC = () => {
     { name: 'Scan Question', path: '/scan', icon: Camera, color: 'bg-blue-500', desc: 'Solve with photo' },
     { name: 'Ask Doubt', path: '/doubt', icon: BrainCircuit, color: 'bg-purple-500', desc: 'AI Chat support' },
     { name: 'Summarizer', path: '/summarize', icon: FileText, color: 'bg-orange-500', desc: 'Shorten notes' },
+    { name: 'Translator', path: '/translator', icon: Languages, color: 'bg-red-500', desc: 'All language support' },
     { name: 'Quiz Mode', path: '/quiz', icon: HelpCircle, color: 'bg-green-500', desc: 'Practice MCQs' },
     { name: 'Study Planner', path: '/planner', icon: Calendar, color: 'bg-pink-500', desc: 'Manage schedule' },
-    { name: 'Voice Assistant', path: '/voice-assistant', icon: Mic, color: 'bg-red-500', desc: 'Talk to NIRAJ AI' },
     { name: 'Progress', path: '/progress', icon: BarChart2, color: 'bg-indigo-500', desc: 'Track growth' },
   ];
 
