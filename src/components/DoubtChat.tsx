@@ -43,7 +43,11 @@ export const DoubtChat: React.FC = () => {
   const handleSend = async () => {
     if ((!input.trim() && !image) || loading) return;
     if (!navigator.onLine) {
-      alert("AI Teacher requires an internet connection.");
+      setMessages(prev => [...prev, { 
+        role: 'ai', 
+        text: "⚠️ **Offline Error:** AI Teacher requires an internet connection. Please check your network and try again.",
+        isError: true 
+      }]);
       return;
     }
     const userMsg = { role: 'user' as const, text: input, image: image || undefined };

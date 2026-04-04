@@ -14,6 +14,7 @@ import { ScanQuestion } from './components/ScanQuestion';
 import { DoubtChat } from './components/DoubtChat';
 import { NotesSummarizer } from './components/NotesSummarizer';
 import { QuizMode } from './components/QuizMode';
+import { VoiceAssistant } from './components/VoiceAssistant';
 import { Translator } from './components/Translator';
 import { StudyPlanner } from './components/StudyPlanner';
 import { NotesStorage } from './components/NotesStorage';
@@ -106,15 +107,18 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
 // --- Login Screen ---
 const LoginScreen = () => {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handleLogin = async () => {
     setLoading(true);
+    setError(null);
     try {
       await signIn();
       navigate('/');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setError(err.message || "Login failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -140,6 +144,22 @@ const LoginScreen = () => {
             <img src="https://www.google.com/favicon.ico" alt="Google" className="w-5 h-5" />
             Continue with Google
           </button>
+
+          {error && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-2xl text-center"
+            >
+              <p className="text-xs text-red-600 dark:text-red-400 font-bold mb-2">{error}</p>
+              <button 
+                onClick={handleLogin}
+                className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 underline"
+              >
+                Try Again
+              </button>
+            </motion.div>
+          )}
           
           <button 
             onClick={() => navigate('/')}
@@ -189,6 +209,7 @@ export default function App() {
         <Route path="/summarize" element={<Layout><NotesSummarizer /></Layout>} />
         <Route path="/quiz" element={<Layout><QuizMode /></Layout>} />
         <Route path="/translator" element={<Layout><Translator /></Layout>} />
+        <Route path="/voice-assistant" element={<Layout><VoiceAssistant /></Layout>} />
         <Route path="/planner" element={<Layout><StudyPlanner /></Layout>} />
         <Route path="/notes" element={<Layout><NotesStorage /></Layout>} />
         <Route path="/progress" element={<Layout><ProgressTracker /></Layout>} />

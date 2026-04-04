@@ -42,9 +42,12 @@ export const VoiceLearning: React.FC = () => {
     }
   };
 
+  const [error, setError] = useState<string | null>(null);
+
   const handleExplainTopic = async () => {
     if (!topicInput.trim() || loading) return;
     setLoading(true);
+    setError(null);
     try {
       const explanation = await generateVoiceExplanation(topicInput, voiceLang);
       const newNote = { title: topicInput, content: explanation };
@@ -60,7 +63,7 @@ export const VoiceLearning: React.FC = () => {
       setIsPlaying(true);
     } catch (err: any) {
       console.error(err);
-      alert(err.message || "Failed to generate explanation. Please try again.");
+      setError(err.message || "Failed to generate explanation. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -117,9 +120,25 @@ export const VoiceLearning: React.FC = () => {
             className="px-6 bg-blue-600 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 transition-all disabled:opacity-50"
           >
             {loading ? <RefreshCw size={18} className="animate-spin" /> : <Play size={18} />}
-            Explain
+            {loading ? '...' : 'Explain'}
           </button>
         </div>
+
+        {error && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-2xl text-center"
+          >
+            <p className="text-xs text-red-600 dark:text-red-400 font-bold mb-2">{error}</p>
+            <button 
+              onClick={handleExplainTopic}
+              className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 underline"
+            >
+              Try Again Now
+            </button>
+          </motion.div>
+        )}
       </div>
 
       <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[40px] p-8 text-white shadow-2xl shadow-blue-500/20 relative overflow-hidden">

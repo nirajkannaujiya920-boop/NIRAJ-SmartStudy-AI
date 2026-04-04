@@ -17,15 +17,18 @@ export const Translator: React.FC = () => {
     'Hindi', 'English', 'Sanskrit', 'French', 'German', 'Spanish', 'Japanese', 'Korean', 'Arabic', 'Russian', 'Bengali', 'Marathi', 'Telugu', 'Tamil', 'Gujarati'
   ];
 
+  const [error, setError] = useState<string | null>(null);
+
   const handleTranslate = async () => {
     if (!text.trim() || loading) return;
     setLoading(true);
+    setError(null);
     try {
       const res = await translateText(text, targetLang);
       setTranslatedText(res || '');
     } catch (err: any) {
       console.error(err);
-      alert("Translation failed. Please try again.");
+      setError(err.message || "Translation failed. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -118,6 +121,22 @@ export const Translator: React.FC = () => {
             {loading ? <RefreshCw className="animate-spin" /> : <Sparkles size={20} />}
             {loading ? 'Translating...' : 'Translate Now'}
           </button>
+
+          {error && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-2xl text-center"
+            >
+              <p className="text-xs text-red-600 dark:text-red-400 font-bold mb-2">{error}</p>
+              <button 
+                onClick={handleTranslate}
+                className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 underline"
+              >
+                Try Again Now
+              </button>
+            </motion.div>
+          )}
         </div>
 
         {/* Output Area */}

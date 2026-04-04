@@ -5,6 +5,9 @@ import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { SmartMic } from './SmartMic';
 
+import { db, auth } from '../firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+
 interface Question {
   question: string;
   options: string[];
@@ -67,13 +70,31 @@ export const QuizMode: React.FC = () => {
     }
   };
 
+  const handleFinishQuiz = async () => {
+    setQuizFinished(true);
+    if (auth.currentUser) {
+      try {
+        await addDoc(collection(db, 'quizResults'), {
+          userId: auth.currentUser.uid,
+          subject: quizType === 'subject' ? topic : quizType,
+          score: score,
+          total: questions.length,
+          timestamp: serverTimestamp(),
+          class: studentClass
+        });
+      } catch (err) {
+        console.error("Error saving quiz result:", err);
+      }
+    }
+  };
+
   const handleNext = () => {
     if (currentIndex < questions.length - 1) {
       setCurrentIndex(c => c + 1);
       setSelectedOption(null);
       setShowFeedback(false);
     } else {
-      setQuizFinished(true);
+      handleFinishQuiz();
     }
   };
 

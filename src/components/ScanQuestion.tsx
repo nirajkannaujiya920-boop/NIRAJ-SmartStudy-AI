@@ -33,7 +33,7 @@ export const ScanQuestion: React.FC = () => {
   const handleSolve = async () => {
     if (!image || loading) return;
     if (!navigator.onLine) {
-      alert("You are offline. AI solving requires an internet connection.");
+      setError("You are offline. AI solving requires an internet connection.");
       return;
     }
     setLoading(true);
@@ -50,9 +50,12 @@ export const ScanQuestion: React.FC = () => {
     }
   };
 
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
   const handleSaveToNotes = async () => {
     if (!result || !auth.currentUser) return;
     setSaving(true);
+    setSaveSuccess(false);
     try {
       await addDoc(collection(db, 'notes'), {
         userId: auth.currentUser.uid,
@@ -63,9 +66,11 @@ export const ScanQuestion: React.FC = () => {
         subject: 'Scanned Question',
         tags: ['Scan', 'AI']
       });
-      alert("Note saved successfully!");
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
       console.error(err);
+      setError("Failed to save note. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -177,11 +182,15 @@ export const ScanQuestion: React.FC = () => {
                 </button>
                 <button 
                   onClick={handleSaveToNotes}
-                  disabled={saving}
-                  className="flex-1 py-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+                  disabled={saving || saveSuccess}
+                  className={`flex-1 py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50 ${
+                    saveSuccess 
+                      ? 'bg-green-100 text-green-600 dark:bg-green-900/20' 
+                      : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600'
+                  }`}
                 >
-                  {saving ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />}
-                  {saving ? 'Saving...' : 'Save to Notes'}
+                  {saving ? <RefreshCw size={18} className="animate-spin" /> : saveSuccess ? <Check size={18} className="text-green-500" /> : <Save size={18} />}
+                  {saving ? 'Saving...' : saveSuccess ? 'Saved!' : 'Save to Notes'}
                 </button>
               </div>
             </motion.div>
