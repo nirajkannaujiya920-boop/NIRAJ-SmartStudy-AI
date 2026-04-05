@@ -10,12 +10,16 @@ import {
   X,
   Heart,
   Volume2,
-  ShieldCheck
+  ShieldCheck,
+  Zap,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { PermissionManager } from './PermissionManager';
 import { auth, logOut } from '../firebase';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
+import { checkApiKey } from '../lib/gemini';
 
 export const Settings: React.FC = () => {
   const [notifications, setNotifications] = useState(true);
@@ -25,8 +29,17 @@ export const Settings: React.FC = () => {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
   const [showPermissions, setShowPermissions] = useState(false);
+  const [apiStatus, setApiStatus] = useState<'checking' | 'connected' | 'error'>('checking');
   const user = auth.currentUser;
   const navigate = useNavigate();
+
+  React.useEffect(() => {
+    const check = async () => {
+      const isValid = await checkApiKey();
+      setApiStatus(isValid ? 'connected' : 'error');
+    };
+    check();
+  }, []);
 
   const handleLogout = async () => {
     await logOut();
@@ -84,6 +97,49 @@ export const Settings: React.FC = () => {
         <button className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-500">
           <ChevronRight size={20} />
         </button>
+      </div>
+
+      {/* API Status Card */}
+      <div className="bg-white dark:bg-[#1e1e1e] p-4 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+              apiStatus === 'connected' ? 'bg-green-100 text-green-600' : 
+              apiStatus === 'error' ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'
+            }`}>
+              <Zap size={20} />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm">AI Connection Status</h3>
+              <p className="text-xs text-gray-500">
+                {apiStatus === 'connected' ? 'All systems working correctly' : 
+                 apiStatus === 'error' ? 'API Key is missing or invalid' : 'Checking connection...'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1">
+            {apiStatus === 'connected' ? (
+              <span className="text-[10px] font-black bg-green-500 text-white px-2 py-0.5 rounded-full flex items-center gap-1">
+                <CheckCircle2 size={10} /> CONNECTED
+              </span>
+            ) : apiStatus === 'error' ? (
+              <span className="text-[10px] font-black bg-red-500 text-white px-2 py-0.5 rounded-full flex items-center gap-1">
+                <AlertCircle size={10} /> ERROR
+              </span>
+            ) : (
+              <span className="text-[10px] font-black bg-blue-500 text-white px-2 py-0.5 rounded-full animate-pulse">
+                CHECKING...
+              </span>
+            )}
+          </div>
+        </div>
+        {apiStatus === 'error' && (
+          <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-900/20">
+            <p className="text-[10px] text-red-600 dark:text-red-400 leading-tight">
+              ⚠️ **Fix:** AI Studio ke **Settings &gt; Secrets** mein jayein aur `GEMINI_API_KEY` ko phir se save karein.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Settings Sections */}

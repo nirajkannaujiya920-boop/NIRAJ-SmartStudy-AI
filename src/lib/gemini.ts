@@ -11,13 +11,29 @@ export const EXTRA_KEYS = {
   sambanova: process.env.SAMBANOVA_API_KEY || "",
   studyai: process.env.STUDYAI_API_KEY || "",
   extra: process.env.EXTRA_API_KEY || "",
-  longToken: process.env.LONG_TOKEN_100 || ""
+  longToken: process.env.LONG_TOKEN_100 || "",
+  sunra: process.env.SUNRA_API_KEY || ""
 };
 
 export const geminiModel = "gemini-3-flash-preview";
 export const fallbackModel = "gemini-3.1-pro-preview";
 
 let quotaExhaustedUntil = 0;
+
+export async function checkApiKey() {
+  if (!ai) return false;
+  try {
+    // Simple call to check if key is valid
+    await ai.models.generateContent({
+      model: geminiModel,
+      contents: "hi",
+    });
+    return true;
+  } catch (error) {
+    console.error("API Key Check Failed:", error);
+    return false;
+  }
+}
 
 // Helper to handle Gemini errors gracefully with retry logic
 export async function safeGenerateContent(params: any, retries = 5, delay = 5000) {

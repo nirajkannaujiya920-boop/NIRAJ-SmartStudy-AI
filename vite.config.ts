@@ -14,6 +14,7 @@ export default defineConfig(({mode}) => {
       'process.env.STUDYAI_API_KEY': JSON.stringify(env.STUDYAI_API_KEY),
       'process.env.EXTRA_API_KEY': JSON.stringify(env.EXTRA_API_KEY),
       'process.env.LONG_TOKEN_100': JSON.stringify(env.LONG_TOKEN_100),
+      'process.env.SUNRA_API_KEY': JSON.stringify(env.SUNRA_API_KEY),
     },
     resolve: {
       alias: {

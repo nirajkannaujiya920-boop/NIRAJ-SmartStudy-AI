@@ -7,12 +7,13 @@ const SAMBANOVA_KEY = process.env.SAMBANOVA_API_KEY || "";
 const STUDYAI_KEY = process.env.STUDYAI_API_KEY || "";
 const EXTRA_KEY = process.env.EXTRA_API_KEY || "";
 const LONG_TOKEN = process.env.LONG_TOKEN_100 || "";
+const SUNRA_KEY = process.env.SUNRA_API_KEY || "";
 
 // Initialize Gemini
 export const genAI = GEMINI_KEY ? new GoogleGenAI({ apiKey: GEMINI_KEY }) : null;
 
 // Provider Types
-export type AIProvider = 'gemini' | 'openai' | 'sambanova' | 'studyai';
+export type AIProvider = 'gemini' | 'openai' | 'sambanova' | 'studyai' | 'sunra';
 
 // Configuration for other providers
 export const AI_CONFIG = {
@@ -39,6 +40,10 @@ export const AI_CONFIG = {
   },
   longToken: {
     token: LONG_TOKEN,
+  },
+  sunra: {
+    apiKey: SUNRA_KEY,
+    baseUrl: "https://api.sunra.ai/v1",
   }
 };
 
@@ -65,6 +70,11 @@ export async function callAI(provider: AIProvider, prompt: string) {
       // Placeholder for SambaNova fetch call
       console.log("Calling SambaNova with key:", AI_CONFIG.sambanova.apiKey.substring(0, 8) + "...");
       return "SambaNova response placeholder";
+
+    case 'sunra':
+      // Placeholder for Sunra.ai fetch call
+      console.log("Calling Sunra.ai with key:", AI_CONFIG.sunra.apiKey.substring(0, 8) + "...");
+      return "Sunra.ai response placeholder";
 
     default:
       throw new Error(`Provider ${provider} not supported yet.`);

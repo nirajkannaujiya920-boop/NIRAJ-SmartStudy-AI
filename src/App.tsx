@@ -30,7 +30,7 @@ const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
   const [mascotUrl, setMascotUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const timer = setTimeout(onComplete, 4000); // Slightly longer for mascot visibility
+    const timer = setTimeout(onComplete, 2000); // Reduced from 4000 for faster feel
     
     // In a real app, we would use the user's photo. 
     // Here we generate a similar mascot pointing to the logo.
