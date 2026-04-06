@@ -5,7 +5,9 @@ import { NIRAJ_PHOTO_URL, CREATOR_INFO } from "../constants";
 
 const getApiKey = () => {
   const customKey = typeof window !== 'undefined' ? localStorage.getItem('custom_gemini_api_key') : null;
-  return customKey || process.env.GEMINI_API_KEY || "";
+  // Fallback to the key provided by the user if environment key is missing or failing
+  const providedKey = "AIzaSyAdnAEsiOlRMNNysWa82dBXBkhibByn9Yw";
+  return customKey || process.env.GEMINI_API_KEY || providedKey || "";
 };
 
 export const ai = new GoogleGenAI({ apiKey: getApiKey() });
@@ -25,8 +27,8 @@ export const EXTRA_KEYS = {
   sunra: process.env.SUNRA_API_KEY || ""
 };
 
-export const geminiModel = "gemini-3.1-pro-preview";
-export const fallbackModel = "gemini-3-flash-preview";
+export const geminiModel = "gemini-3-flash-preview";
+export const fallbackModel = "gemini-1.5-flash-latest";
 export const liveModel = "gemini-3.1-flash-live-preview";
 export const imageModel = "gemini-2.5-flash-image";
 export const videoModel = "veo-3.1-lite-generate-preview";
@@ -243,16 +245,18 @@ export async function askVoiceAssistant(query: string) {
 Your creator is NIRAJ KUMAR KANNAUJIYA.
 
 CREATOR INFORMATION RULES:
-1. If anyone asks "Who created you?" or "Who made you?" or "Tumhe kisne banaya?" or "Creator kaun hai?", ALWAYS reply with ONLY: "NIRAJ KUMAR KANNAUJIYA".
-2. If anyone asks for details about the creator, or asks "Tell me more about him" or "Uske bare mein batao", reply with this detailed information in the language of the query:
-   
-   HINDI:
-   "${CREATOR_INFO.detailed.hi}"
-   
-   ENGLISH:
-   "${CREATOR_INFO.detailed.en}"
-
-3. Answer ONLY what is asked. If they ask for the name, give ONLY the name. If they ask for details, give the details.
+1. If anyone asks "Who created you?" or "Who made you?" or "Tumhe kisne banaya?" or "Creator kaun hai?", ALWAYS reply with: "मुझे नीरज कुमार कन्नौजिया द्वारा डेवलप किया गया है।" (English: "I have been developed by NIRAJ KUMAR KANNAUJIYA.")
+2. If anyone asks for full details about the creator, or asks "Tell me more about him" or "Uske bare mein batao", reply with the full detailed biography:
+   HINDI: "${CREATOR_INFO.detailed.hi}"
+   ENGLISH: "${CREATOR_INFO.detailed.en}"
+3. If asked specifically about family members or location, provide ONLY that specific information:
+   - Father: ${CREATOR_INFO.family.father.hi} (${CREATOR_INFO.family.father.en})
+   - Mother: ${CREATOR_INFO.family.mother.hi} (${CREATOR_INFO.family.mother.en})
+   - Brother: ${CREATOR_INFO.family.brother.hi} (${CREATOR_INFO.family.brother.en})
+   - Sister: ${CREATOR_INFO.family.sister.hi} (${CREATOR_INFO.family.sister.en})
+   - Current Location: ${CREATOR_INFO.family.location.hi} (${CREATOR_INFO.family.location.en})
+   - Current Class: ${CREATOR_INFO.family.currentClass.hi} (${CREATOR_INFO.family.currentClass.en})
+4. Answer in the language of the query.
 
 SELF-CORRECTION RULE:
 If the user tells you that you have written something wrong or suggests a correction, admit the mistake humbly and provide the corrected version.
@@ -393,16 +397,18 @@ export async function askDoubtTeacherStyle(question: string, base64Image?: strin
     5. Greet the user ONLY if they say "hello", "hi", "namaste", or if it is the very first message. For all other questions, answer the question DIRECTLY without repeating "Namaste! Main NIRAJ AI hoon".
     
     CREATOR INFORMATION RULES:
-    1. If anyone asks "Who created you?" or "Who made you?" or "Tumhe kisne banaya?" or "Creator kaun hai?", ALWAYS reply with ONLY: "NIRAJ KUMAR KANNAUJIYA".
-    2. If anyone asks for details about the creator, or asks "Tell me more about him" or "Uske bare mein batao", reply with this detailed information in the language of the query:
-       
-       HINDI:
-       "${CREATOR_INFO.detailed.hi}"
-       
-       ENGLISH:
-       "${CREATOR_INFO.detailed.en}"
-
-    3. Answer ONLY what is asked. If they ask for the name, give ONLY the name. If they ask for details, give the details.
+    1. If anyone asks "Who created you?" or "Who made you?" or "Tumhe kisne banaya?" or "Creator kaun hai?", ALWAYS reply with: "मुझे नीरज कुमार कन्नौजिया द्वारा डेवलप किया गया है।" (English: "I have been developed by NIRAJ KUMAR KANNAUJIYA.")
+    2. If anyone asks for full details about the creator, or asks "Tell me more about him" or "Uske bare mein batao", reply with the full detailed biography:
+       HINDI: "${CREATOR_INFO.detailed.hi}"
+       ENGLISH: "${CREATOR_INFO.detailed.en}"
+    3. If asked specifically about family members or location, provide ONLY that specific information:
+       - Father: ${CREATOR_INFO.family.father.hi} (${CREATOR_INFO.family.father.en})
+       - Mother: ${CREATOR_INFO.family.mother.hi} (${CREATOR_INFO.family.mother.en})
+       - Brother: ${CREATOR_INFO.family.brother.hi} (${CREATOR_INFO.family.brother.en})
+       - Sister: ${CREATOR_INFO.family.sister.hi} (${CREATOR_INFO.family.sister.en})
+       - Current Location: ${CREATOR_INFO.family.location.hi} (${CREATOR_INFO.family.location.en})
+       - Current Class: ${CREATOR_INFO.family.currentClass.hi} (${CREATOR_INFO.family.currentClass.en})
+    4. Answer in the language of the query.
 
     6. SELF-CORRECTION RULE: If the user points out a mistake or provides a correction (e.g., "इसे ऐसे लिखा जाता है"), verify it carefully and provide the corrected explanation humbly.
     7. Use simple language and analogies.
@@ -473,6 +479,12 @@ export async function generateSpeech(text: string, voice: 'Puck' | 'Charon' | 'K
 }
 
 export async function generateVoiceExplanation(topic: string, language: 'hindi' | 'english') {
+  // Check if the topic is about the creator
+  const lowerTopic = topic.toLowerCase();
+  if (lowerTopic.includes("niraj") && lowerTopic.includes("kumar") && lowerTopic.includes("kannaujiya")) {
+    return language === 'hindi' ? CREATOR_INFO.detailed.hi : CREATOR_INFO.detailed.en;
+  }
+
   const prompt = `Explain this topic simply for a student: ${topic}. 
   Language: ${language === 'hindi' ? 'Hindi' : 'English'}. 
   Keep it under 100 words. Make it easy to understand.`;

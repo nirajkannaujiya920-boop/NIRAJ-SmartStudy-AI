@@ -461,7 +461,24 @@ export const VoiceAssistant: React.FC = () => {
                     <Logo size="sm" className="w-4 h-4" rounded="rounded-full" />
                   )}
                 </div>
-                <p className="text-xs leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                <div className="flex flex-col gap-2">
+                  <p className="text-xs leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                  {msg.role === 'ai' && idx > 0 && (
+                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <button 
+                        onClick={() => speak(msg.text)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                          isSpeaking 
+                            ? 'bg-blue-100 text-blue-600' 
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-500 hover:text-blue-500'
+                        }`}
+                      >
+                        {isSpeaking ? <Volume2 size={12} className="animate-pulse" /> : <Volume2 size={12} />}
+                        {isSpeaking ? 'Speaking...' : 'Listen'}
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </motion.div>
           ))}

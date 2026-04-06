@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, BrainCircuit, Sparkles, RefreshCw, User, GraduationCap, ArrowLeft, Camera, Image as ImageIcon, X, Save, Check, Volume2, ShieldCheck, Trash2, ChevronDown } from 'lucide-react';
+import { Send, BrainCircuit, Sparkles, RefreshCw, User, GraduationCap, ArrowLeft, Camera, Image as ImageIcon, X, Save, Check, Volume2, VolumeX, ShieldCheck, Trash2, ChevronDown } from 'lucide-react';
 import { NIRAJ_PHOTO_URL } from '../constants';
 import { askDoubtTeacherStyle } from '../lib/gemini';
 import { motion, AnimatePresence } from 'motion/react';
@@ -41,6 +41,7 @@ export const DoubtChat: React.FC = () => {
   const [saving, setSaving] = useState<number | null>(null);
   const [lang, setLang] = useState<'hindi' | 'english'>('hindi');
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [autoSpeak, setAutoSpeak] = useState(() => JSON.parse(localStorage.getItem('autoSpeak') || 'false'));
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const [showScrollBottom, setShowScrollBottom] = useState(false);
@@ -148,7 +149,6 @@ export const DoubtChat: React.FC = () => {
       const res = await askDoubtTeacherStyle(userMsg.text, base64, lang);
       
       // Start TTS generation in parallel with UI update for better sync
-      const autoSpeak = JSON.parse(localStorage.getItem('autoSpeak') || 'false');
       let speechPromise: Promise<string | null> | null = null;
       if (autoSpeak) {
         const { generateSpeech } = await import('../lib/gemini');
@@ -200,6 +200,22 @@ export const DoubtChat: React.FC = () => {
       setImage(lastUserMsg.image || null);
       setMessages(prev => prev.filter((m, i) => i !== prev.length - 1)); // Remove last user message (it will be re-added)
       handleSend();
+    }
+  };
+
+  const toggleAutoSpeak = () => {
+    const newState = !autoSpeak;
+    setAutoSpeak(newState);
+    localStorage.setItem('autoSpeak', JSON.stringify(newState));
+    if (!newState) {
+      if (audioSourceRef.current) {
+        try { audioSourceRef.current.stop(); } catch (e) {}
+        audioSourceRef.current = null;
+      }
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+      setIsSpeaking(false);
     }
   };
 
@@ -307,6 +323,17 @@ export const DoubtChat: React.FC = () => {
         </div>
         <div className="flex items-center gap-2">
           <button 
+            onClick={toggleAutoSpeak}
+            className={`p-2 rounded-xl transition-all ${
+              autoSpeak 
+                ? 'bg-white text-blue-600 shadow-sm' 
+                : 'text-blue-100 hover:text-white hover:bg-white/10'
+            }`}
+            title={autoSpeak ? "Auto-Speak ON" : "Auto-Speak OFF"}
+          >
+            {autoSpeak ? <Volume2 size={20} /> : <VolumeX size={20} />}
+          </button>
+          <button 
             onClick={clearChat}
             className="p-2 text-blue-100 hover:text-white transition-colors"
             title={t('clearChat')}
@@ -382,20 +409,26 @@ export const DoubtChat: React.FC = () => {
                   </button>
                 )}
                 {msg.role === 'ai' && idx > 0 && !msg.isError && (
-                  <div className="absolute -right-10 top-0 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                  <div className="flex items-center gap-3 mt-3 pt-2 border-t border-gray-100 dark:border-gray-800">
                     <button 
                       onClick={() => handleSpeak(msg.text)}
-                      className="p-2 text-gray-400 hover:text-blue-500"
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                        isSpeaking 
+                          ? 'bg-blue-100 text-blue-600' 
+                          : 'bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-blue-500'
+                      }`}
                       title={t('listen')}
                     >
-                      <Volume2 size={16} />
+                      {isSpeaking ? <Volume2 size={14} className="animate-pulse" /> : <Volume2 size={14} />}
+                      {isSpeaking ? 'Speaking...' : 'Listen'}
                     </button>
                     <button 
                       onClick={() => saveToNotes(msg.text, idx)}
-                      className="p-2 text-gray-400 hover:text-blue-500"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-blue-500 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all"
                       title={t('saveToNotes')}
                     >
-                      {saving === idx ? <Check size={16} className="text-green-500" /> : <Save size={16} />}
+                      {saving === idx ? <Check size={14} className="text-green-500" /> : <Save size={14} />}
+                      {saving === idx ? 'Saved' : 'Save'}
                     </button>
                   </div>
                 )}
