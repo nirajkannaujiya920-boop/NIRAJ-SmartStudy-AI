@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Volume2, Play, Pause, SkipBack, SkipForward, BookOpen, Music, Sparkles, RefreshCw, Languages, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { generateVoiceExplanation } from '../lib/gemini';
+import { generateVoiceExplanation, generateSpeech } from '../lib/gemini';
 import { useNavigate } from 'react-router-dom';
 import { SmartMic } from './SmartMic';
 
@@ -12,6 +12,24 @@ export const VoiceLearning: React.FC = () => {
   const [topicInput, setTopicInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [voiceLang, setVoiceLang] = useState<'hindi' | 'english'>('hindi');
+
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioSourceRef.current) {
+        try { audioSourceRef.current.stop(); } catch (e) {}
+      }
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close().catch(() => {});
+      }
+    };
+  }, []);
 
   const [notes, setNotes] = useState([
     { title: "Photosynthesis (Hindi)", content: "प्रकाश संश्लेषण वह प्रक्रिया है जिसके द्वारा हरे पौधे सूर्य के प्रकाश का उपयोग करके कार्बन डाइऑक्साइड और पानी से भोजन बनाते हैं। यह पृथ्वी पर जीवन के लिए बहुत महत्वपूर्ण है।" },
@@ -25,18 +43,86 @@ export const VoiceLearning: React.FC = () => {
     return text.replace(/[*#_~`>]/g, '').replace(/\[.*?\]\(.*?\)/g, '');
   };
 
-  const togglePlay = (text?: string) => {
+  const togglePlay = async (text?: string) => {
     const contentToSpeak = text || notes[currentNote].content;
     const cleanText = stripMarkdown(contentToSpeak);
     
     if (!isPlaying) {
-      window.speechSynthesis.cancel(); // Clear any existing speech
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.lang = voiceLang === 'hindi' ? 'hi-IN' : 'en-US';
-      utterance.onend = () => setIsPlaying(false);
-      window.speechSynthesis.speak(utterance);
+      // Stop any currently playing audio (TTS API)
+      if (audioSourceRef.current) {
+        try {
+          audioSourceRef.current.stop();
+        } catch (e) {
+          // Source might already be stopped
+        }
+        audioSourceRef.current = null;
+      }
+
+      // Stop any currently playing speech (Browser Speech API)
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+      }
+
       setIsPlaying(true);
+      try {
+        // Use 'Puck' for a Male Indian feel
+        const voice = 'Puck';
+        const base64Audio = await generateSpeech(cleanText, voice);
+        
+        if (!base64Audio) {
+          const utterance = new SpeechSynthesisUtterance(cleanText);
+          utterance.lang = voiceLang === 'hindi' ? 'hi-IN' : 'en-US';
+          utterance.rate = 1.0; // Normal speed
+          utterance.onend = () => setIsPlaying(false);
+          window.speechSynthesis.speak(utterance);
+          return;
+        }
+
+        if (!audioContextRef.current || audioContextRef.current.state === 'closed') {
+          audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+        }
+
+        const audioContext = audioContextRef.current;
+        if (audioContext.state === 'suspended') {
+          await audioContext.resume();
+        }
+
+        const binaryString = window.atob(base64Audio);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        const pcmData = new Int16Array(bytes.buffer);
+        const float32Data = new Float32Array(pcmData.length);
+        for (let i = 0; i < pcmData.length; i++) {
+          float32Data[i] = pcmData[i] / 32768.0;
+        }
+
+        const audioBuffer = audioContext.createBuffer(1, float32Data.length, 24000);
+        audioBuffer.getChannelData(0).set(float32Data);
+        
+        const source = audioContext.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(audioContext.destination);
+        
+        source.onended = () => {
+          setIsPlaying(false);
+          audioSourceRef.current = null;
+        };
+
+        audioSourceRef.current = source;
+        source.start(0);
+      } catch (err) {
+        console.error("Playback failed:", err);
+        setIsPlaying(false);
+      }
     } else {
+      if (audioSourceRef.current) {
+        audioSourceRef.current.stop();
+        audioSourceRef.current = null;
+      }
       window.speechSynthesis.cancel();
       setIsPlaying(false);
     }
@@ -55,12 +141,7 @@ export const VoiceLearning: React.FC = () => {
       setCurrentNote(0);
       setTopicInput('');
       // Automatically play the new explanation
-      const cleanText = stripMarkdown(explanation);
-      const utterance = new SpeechSynthesisUtterance(cleanText);
-      utterance.lang = voiceLang === 'hindi' ? 'hi-IN' : 'en-US';
-      utterance.onend = () => setIsPlaying(false);
-      window.speechSynthesis.speak(utterance);
-      setIsPlaying(true);
+      togglePlay(explanation);
     } catch (err: any) {
       console.error(err);
       setError(err.message || "Failed to generate explanation. Please try again.");

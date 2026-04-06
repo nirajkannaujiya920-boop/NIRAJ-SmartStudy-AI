@@ -14,6 +14,8 @@ export const NotesStorage: React.FC = () => {
   const [selectedNote, setSelectedNote] = useState<StudyNote | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isClearingAll, setIsClearingAll] = useState(false);
+  const [showClearAllConfirm, setShowClearAllConfirm] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const user = auth.currentUser;
 
@@ -53,6 +55,23 @@ export const NotesStorage: React.FC = () => {
     }
   };
 
+  const clearAllNotes = async () => {
+    if (!user || notes.length === 0) return;
+    setIsClearingAll(true);
+    setDeleteError(null);
+    try {
+      const promises = notes.map(note => deleteDoc(doc(db, 'notes', note.id)));
+      await Promise.all(promises);
+      setSelectedNote(null);
+      setShowClearAllConfirm(false);
+    } catch (err: any) {
+      console.error(err);
+      setDeleteError(err.message || "Failed to clear all notes.");
+    } finally {
+      setIsClearingAll(false);
+    }
+  };
+
   const filteredNotes = notes.filter(n => 
     n.title.toLowerCase().includes(search.toLowerCase()) || 
     n.subject.toLowerCase().includes(search.toLowerCase())
@@ -61,7 +80,17 @@ export const NotesStorage: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <h2 className="text-2xl font-bold">Smart Notes Storage</h2>
+        <div className="flex items-center gap-4">
+          <h2 className="text-2xl font-bold">Smart Notes Storage</h2>
+          {notes.length > 0 && (
+            <button
+              onClick={() => setShowClearAllConfirm(true)}
+              className="flex items-center gap-2 px-3 py-1.5 bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 rounded-lg text-xs font-bold hover:bg-red-100 dark:hover:bg-red-900/20 transition-all"
+            >
+              <Trash2 size={14} /> Clear All
+            </button>
+          )}
+        </div>
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input 
@@ -117,6 +146,55 @@ export const NotesStorage: React.FC = () => {
                   >
                     {isDeleting && <RefreshCw size={16} className="animate-spin" />}
                     {isDeleting ? 'Deleting...' : 'Delete'}
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Clear All Confirmation Modal */}
+        <AnimatePresence>
+          {showClearAllConfirm && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] flex items-center justify-center p-4"
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white dark:bg-[#1e1e1e] p-6 rounded-[2rem] shadow-2xl max-w-sm w-full text-center"
+              >
+                <div className="w-16 h-16 bg-red-100 dark:bg-red-900/20 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Trash2 size={32} />
+                </div>
+                <h3 className="text-xl font-bold mb-2">Clear All Notes?</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Are you sure you want to delete ALL {notes.length} notes? This action cannot be undone.</p>
+                
+                {deleteError && (
+                  <div className="mb-4 p-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 text-xs rounded-lg border border-red-100 dark:border-red-900/30">
+                    {deleteError}
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowClearAllConfirm(false)}
+                    disabled={isClearingAll}
+                    className="flex-1 py-3 bg-gray-100 dark:bg-gray-800 rounded-xl font-bold hover:bg-gray-200 transition-all disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={clearAllNotes}
+                    disabled={isClearingAll}
+                    className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {isClearingAll && <RefreshCw size={16} className="animate-spin" />}
+                    {isClearingAll ? 'Clearing...' : 'Clear All'}
                   </button>
                 </div>
               </motion.div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff, Languages, RefreshCw, X, Check, ShieldCheck } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { translateText } from '../lib/gemini';
@@ -54,16 +54,27 @@ export const SmartMic: React.FC<SmartMicProps> = ({ onResult, placeholder, class
     'Hindi', 'English', 'Sanskrit', 'French', 'German', 'Spanish', 'Japanese', 'Korean', 'Arabic', 'Russian'
   ];
 
+  const silenceTimerRef = React.useRef<any>(null);
+  const longSilenceTimerRef = React.useRef<any>(null);
+
   useEffect(() => {
     let recognition: any = null;
 
     if (isListening) {
-      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
       if (SpeechRecognition) {
         recognition = new SpeechRecognition();
         recognition.continuous = true;
         recognition.interimResults = true;
         recognition.lang = 'hi-IN';
+
+        recognition.onstart = () => {
+          // Smart Auto-Off: If nothing said for 10 seconds, turn off mic
+          if (longSilenceTimerRef.current) clearTimeout(longSilenceTimerRef.current);
+          longSilenceTimerRef.current = setTimeout(() => {
+            if (isListening) setIsListening(false);
+          }, 10000);
+        };
 
         recognition.onresult = (event: any) => {
           let final = '';
@@ -75,7 +86,28 @@ export const SmartMic: React.FC<SmartMicProps> = ({ onResult, placeholder, class
               interim += event.results[i][0].transcript;
             }
           }
-          if (final) setTranscript(prev => prev + ' ' + final);
+          
+          if (final) {
+            // Reset smart auto-off timer as user is speaking
+            if (longSilenceTimerRef.current) clearTimeout(longSilenceTimerRef.current);
+            longSilenceTimerRef.current = setTimeout(() => {
+              stopMic();
+            }, 10000);
+
+            setTranscript(prev => {
+              const newText = (prev + ' ' + final).trim();
+              // Auto-send on silence (1.5s)
+              if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+              silenceTimerRef.current = setTimeout(() => {
+                if (newText) {
+                  onResult(newText);
+                  setTranscript('');
+                  stopMic();
+                }
+              }, 1500);
+              return newText;
+            });
+          }
           setInterimTranscript(interim);
         };
 
@@ -93,13 +125,7 @@ export const SmartMic: React.FC<SmartMicProps> = ({ onResult, placeholder, class
         };
 
         recognition.onend = () => {
-          if (isListening) {
-            try {
-              recognition.start();
-            } catch (e) {
-              console.error("Failed to restart recognition:", e);
-            }
-          }
+          setIsListening(false);
         };
 
         try {
@@ -123,6 +149,12 @@ export const SmartMic: React.FC<SmartMicProps> = ({ onResult, placeholder, class
       }
     };
   }, [isListening]);
+
+  const stopMic = () => {
+    setIsListening(false);
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    if (longSilenceTimerRef.current) clearTimeout(longSilenceTimerRef.current);
+  };
 
   const handleTranslate = async () => {
     if (!transcript || isTranslating) return;

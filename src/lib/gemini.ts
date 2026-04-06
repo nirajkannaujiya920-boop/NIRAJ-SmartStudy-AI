@@ -1,9 +1,19 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, ThinkingLevel, Modality } from "@google/genai";
+import { callAI } from "./ai-providers";
 
 import { NIRAJ_PHOTO_URL, CREATOR_INFO } from "../constants";
 
-const apiKey = process.env.GEMINI_API_KEY;
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+const getApiKey = () => {
+  const customKey = typeof window !== 'undefined' ? localStorage.getItem('custom_gemini_api_key') : null;
+  return customKey || process.env.GEMINI_API_KEY || "";
+};
+
+export const ai = new GoogleGenAI({ apiKey: getApiKey() });
+
+// Helper to get a fresh instance with the latest key
+export const getAiInstance = () => {
+  return new GoogleGenAI({ apiKey: getApiKey() });
+};
 
 // Other keys from environment only
 export const EXTRA_KEYS = {
@@ -15,42 +25,50 @@ export const EXTRA_KEYS = {
   sunra: process.env.SUNRA_API_KEY || ""
 };
 
-export const geminiModel = "gemini-3-flash-preview";
-export const fallbackModel = "gemini-3.1-pro-preview";
-
-let quotaExhaustedUntil = 0;
+export const geminiModel = "gemini-3.1-pro-preview";
+export const fallbackModel = "gemini-3-flash-preview";
+export const liveModel = "gemini-3.1-flash-live-preview";
+export const imageModel = "gemini-2.5-flash-image";
+export const videoModel = "veo-3.1-lite-generate-preview";
 
 export async function checkApiKey() {
-  if (!ai) return false;
   try {
-    // Simple call to check if key is valid
-    await ai.models.generateContent({
+    const key = getApiKey();
+    if (!key) return false;
+    const localAi = getAiInstance();
+    const response = await localAi.models.generateContent({
       model: geminiModel,
       contents: "hi",
     });
-    return true;
-  } catch (error) {
-    console.error("API Key Check Failed:", error);
+    return !!response.text;
+  } catch (err) {
+    console.error("API Key check failed:", err);
     return false;
   }
 }
 
-// Helper to handle Gemini errors gracefully with retry logic
+let quotaExhaustedUntil = 0;
+
+/**
+ * Generates a response from Gemini with retry logic and error handling.
+ */
 export async function safeGenerateContent(params: any, retries = 5, delay = 5000) {
   // Check if we are in a cooling period
   if (Date.now() < quotaExhaustedUntil) {
-    throw new Error("QUOTA_EXCEEDED: AI is resting. Please try again in a minute.");
+    throw new Error("AI is resting. Please try again in a minute.");
   }
 
   let currentModel = params.model || geminiModel;
 
   for (let i = 0; i < retries; i++) {
     try {
-      if (!ai) {
-        throw new Error("API_KEY_MISSING: Kripya Settings mein Gemini API Key daalein.");
+      const key = getApiKey();
+      if (!key) {
+        throw new Error("AI connect nahi ho raha. Kripya internet check karein.");
       }
+      const localAi = getAiInstance();
       // Use the current model for this attempt
-      const response = await ai.models.generateContent({
+      const response = await localAi.models.generateContent({
         ...params,
         model: currentModel
       });
@@ -68,7 +86,7 @@ export async function safeGenerateContent(params: any, retries = 5, delay = 5000
         }
       }
 
-      // Check for quota exceeded (429)
+      // Check for quota exceeded (429) or Permission Denied (403)
       const isQuotaError = 
         error?.message?.includes("429") || 
         error?.status === "RESOURCE_EXHAUSTED" || 
@@ -84,8 +102,61 @@ export async function safeGenerateContent(params: any, retries = 5, delay = 5000
           error.message.includes("quota exceeded")
         )) ||
         (error?.response?.status === 429);
+
+      const isPermissionError = 
+        error?.message?.includes("403") || 
+        error?.status === "PERMISSION_DENIED" ||
+        error?.code === 403 ||
+        errorData?.code === 403 ||
+        errorData?.error?.code === 403 ||
+        errorData?.status === "PERMISSION_DENIED" ||
+        errorData?.error?.status === "PERMISSION_DENIED" ||
+        (typeof error?.message === 'string' && (
+          error.message.includes("PERMISSION_DENIED") || 
+          error.message.includes("403")
+        ));
       
-      if (isQuotaError) {
+      if (isQuotaError || isPermissionError) {
+        // Switch to fallback model immediately if permission denied or quota hit
+        if (currentModel === geminiModel) {
+          console.log("Switching to fallback model due to error...");
+          currentModel = fallbackModel;
+          continue; // Retry immediately with fallback model
+        }
+
+        // SMART FALLBACK: If Gemini is exhausted or blocked, try Pollinations (Free & Unlimited)
+        // Only for text-only prompts to ensure stability
+        let textPrompt = "";
+        if (typeof params === 'string') {
+          textPrompt = params;
+        } else if (typeof params.contents === 'string') {
+          textPrompt = params.contents;
+        } else if (Array.isArray(params.contents) && params.contents.length === 1 && params.contents[0].parts) {
+          const parts = params.contents[0].parts;
+          if (Array.isArray(parts) && parts.length === 1 && parts[0].text) {
+            textPrompt = parts[0].text;
+          }
+        }
+
+        if (textPrompt) {
+          console.log("Gemini quota exceeded. Falling back to Pollinations AI...");
+          try {
+            const text = await callAI('pollinations', textPrompt);
+            if (text && text.trim()) {
+              return {
+                text,
+                candidates: [{
+                  content: {
+                    parts: [{ text }]
+                  }
+                }]
+              } as any;
+            }
+          } catch (pollError) {
+            console.error("Pollinations fallback failed:", pollError);
+          }
+        }
+
         // On the 3rd attempt, try switching to the fallback model if we haven't already
         if (i === 2 && currentModel === geminiModel) {
           console.log("Switching to fallback model due to quota...");
@@ -121,22 +192,26 @@ export async function safeGenerateContent(params: any, retries = 5, delay = 5000
 }
 
 export async function solveFromImage(base64Image: string, language: 'hindi' | 'english' | 'hinglish' = 'hinglish') {
-  const response = await safeGenerateContent({
-    model: geminiModel,
-    contents: [
-      {
-        parts: [
-          { text: `Solve this study question. 
+    const localAi = getAiInstance();
+    const response = await localAi.models.generateContent({
+      model: geminiModel,
+      contents: [
+        {
+          parts: [
+            { text: `Solve this study question. 
             Language: ${language}. 
             Provide: 1. Step-by-step solution, 2. Simple explanation, 3. Real-life example, 4. Short trick to remember.
-            IMPORTANT: For math formulas, ALWAYS use standard LaTeX with $ for inline math and $$ for block math. 
-            Example: Use $E=mc^2$ for inline and $$\frac{-b \pm \sqrt{b^2-4ac}}{2a}$$ for blocks.
+            IMPORTANT: For math formulas, ALWAYS use standard LaTeX with $ for inline math and $ for block math. 
+            Example: Use $E=mc^2$ for inline and $\frac{-b \pm \sqrt{b^2-4ac}}{2a}$ for blocks.
             If language is Hindi, use Hindi. If English, use English. If Hinglish, use a mix of Hindi and English.` },
-          { inlineData: { data: base64Image, mimeType: "image/jpeg" } }
-        ]
+            { inlineData: { data: base64Image, mimeType: "image/jpeg" } }
+          ]
+        }
+      ],
+      config: {
+        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW }
       }
-    ]
-  });
+    });
   return response.text;
 }
 
@@ -205,6 +280,19 @@ User Query: ${query}`;
   }
 }
 
+/**
+ * Cleans a string that might be wrapped in Markdown code blocks before parsing as JSON.
+ */
+function cleanJsonString(str: string): string {
+  if (!str) return "";
+  // Remove Markdown code blocks if present
+  let cleaned = str.trim();
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
+  }
+  return cleaned;
+}
+
 export async function generateQuiz(topic: string, count: number = 5, studentClass?: string) {
   let prompt = `Generate ${count} multiple choice questions on the topic: ${topic}. `;
   if (studentClass) prompt += `Level: Class ${studentClass} (Follow CBSE and UP Board syllabus). `;
@@ -231,28 +319,30 @@ export async function generateQuiz(topic: string, count: number = 5, studentClas
       }
     }
   });
-  return JSON.parse(response.text || "[]");
+  return JSON.parse(cleanJsonString(response.text || "[]"));
 }
 
 export async function generateAutoStudyPlan(history: any[]) {
-  const response = await safeGenerateContent({
-    model: geminiModel,
-    contents: `Based on this student's history: ${JSON.stringify(history)}, decide what they should study today. Identify weak topics and suggest: 1. A specific topic to focus on, 2. A quick revision note, 3. A practice goal. Return as JSON with keys 'topic', 'reason', 'revisionNote', 'goal'.`,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          topic: { type: Type.STRING },
-          reason: { type: Type.STRING },
-          revisionNote: { type: Type.STRING },
-          goal: { type: Type.STRING }
-        },
-        required: ["topic", "reason", "revisionNote", "goal"]
+    const localAi = getAiInstance();
+    const response = await localAi.models.generateContent({
+      model: geminiModel,
+      contents: `Based on this student's history: ${JSON.stringify(history)}, decide what they should study today. Identify weak topics and suggest: 1. A specific topic to focus on, 2. A quick revision note, 3. A practice goal. Return as JSON with keys 'topic', 'reason', 'revisionNote', 'goal'.`,
+      config: {
+        responseMimeType: "application/json",
+        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            topic: { type: Type.STRING },
+            reason: { type: Type.STRING },
+            revisionNote: { type: Type.STRING },
+            goal: { type: Type.STRING }
+          },
+          required: ["topic", "reason", "revisionNote", "goal"]
+        }
       }
-    }
-  });
-  return JSON.parse(response.text || "{}");
+    });
+  return JSON.parse(cleanJsonString(response.text || "{}"));
 }
 
 export async function generateMixedQuiz(type: string, studentClass?: string) {
@@ -290,7 +380,7 @@ export async function generateMixedQuiz(type: string, studentClass?: string) {
       }
     }
   });
-  return JSON.parse(response.text || "[]");
+  return JSON.parse(cleanJsonString(response.text || "[]"));
 }
 
 export async function askDoubtTeacherStyle(question: string, base64Image?: string, language: 'hindi' | 'english' | 'hinglish' = 'hinglish') {
@@ -300,7 +390,7 @@ export async function askDoubtTeacherStyle(question: string, base64Image?: strin
     2. Respond STRICTLY in the selected language: ${language}.
     3. If language is Hindi, use ONLY Hindi. If English, use ONLY English. If Hinglish, use a mix of Hindi and English.
     4. Be very concise. Answer ONLY what is asked. Do not give long unnecessary details.
-    5. ALWAYS start with a polite greeting in the selected language. For example, in Hindi: "Namaste! Main NIRAJ AI hoon. Main aapki kaise madad kar sakta hoon?".
+    5. Greet the user ONLY if they say "hello", "hi", "namaste", or if it is the very first message. For all other questions, answer the question DIRECTLY without repeating "Namaste! Main NIRAJ AI hoon".
     
     CREATOR INFORMATION RULES:
     1. If anyone asks "Who created you?" or "Who made you?" or "Tumhe kisne banaya?" or "Creator kaun hai?", ALWAYS reply with ONLY: "NIRAJ KUMAR KANNAUJIYA".
@@ -356,6 +446,32 @@ export async function translateText(text: string, targetLanguage: string) {
   return response.text;
 }
 
+export async function generateSpeech(text: string, voice: 'Puck' | 'Charon' | 'Kore' | 'Fenrir' | 'Zephyr' = 'Kore') {
+  try {
+    const key = getApiKey();
+    if (!key) return null;
+    const localAi = getAiInstance();
+    const response = await localAi.models.generateContent({
+      model: "gemini-2.5-flash-preview-tts",
+      contents: [{ parts: [{ text: text.replace(/[#*`_]/g, '') }] }],
+      config: {
+        responseModalities: [Modality.AUDIO],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: { voiceName: voice },
+          },
+        },
+      },
+    });
+
+    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    return base64Audio;
+  } catch (err) {
+    console.error("Speech generation failed:", err);
+    return null;
+  }
+}
+
 export async function generateVoiceExplanation(topic: string, language: 'hindi' | 'english') {
   const prompt = `Explain this topic simply for a student: ${topic}. 
   Language: ${language === 'hindi' ? 'Hindi' : 'English'}. 
@@ -366,6 +482,82 @@ export async function generateVoiceExplanation(topic: string, language: 'hindi' 
     contents: prompt,
   });
   return response.text;
+}
+
+export async function generateImage(prompt: string, base64Image?: string, aspectRatio: "1:1" | "16:9" | "9:16" = "1:1") {
+  try {
+    const localAi = getAiInstance();
+    const parts: any[] = [{ text: prompt }];
+    if (base64Image) {
+      parts.push({
+        inlineData: {
+          data: base64Image.split(',')[1] || base64Image,
+          mimeType: "image/jpeg"
+        }
+      });
+    }
+
+    const response = await localAi.models.generateContent({
+      model: imageModel,
+      contents: {
+        parts
+      },
+      config: {
+        imageConfig: {
+          aspectRatio,
+          imageSize: "1K"
+        }
+      }
+    });
+
+    for (const part of response.candidates?.[0]?.content?.parts || []) {
+      if (part.inlineData) {
+        return `data:image/png;base64,${part.inlineData.data}`;
+      }
+    }
+    return null;
+  } catch (err) {
+    console.error("Image generation failed:", err);
+    throw err;
+  }
+}
+
+export async function generateVideo(prompt: string) {
+  try {
+    // Create a new instance right before the call to use the latest selected API key
+    const currentApiKey = (process.env as any).API_KEY || getApiKey() || "";
+    const localAi = new GoogleGenAI({ apiKey: currentApiKey });
+
+    let operation = await localAi.models.generateVideos({
+      model: videoModel,
+      prompt,
+      config: {
+        numberOfVideos: 1,
+        resolution: '720p',
+        aspectRatio: '16:9'
+      }
+    });
+
+    while (!operation.done) {
+      await new Promise(resolve => setTimeout(resolve, 10000));
+      operation = await localAi.operations.getVideosOperation({ operation });
+    }
+
+    const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+    if (!downloadLink) return null;
+
+    const response = await fetch(downloadLink, {
+      method: 'GET',
+      headers: {
+        'x-goog-api-key': currentApiKey,
+      },
+    });
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+  } catch (err) {
+    console.error("Video generation failed:", err);
+    throw err;
+  }
 }
 
 export async function analyzePerformance(stats: any, quizResults: any[], notesCount: number, tasksStats: any) {
@@ -381,22 +573,24 @@ export async function analyzePerformance(stats: any, quizResults: any[], notesCo
     Keep it professional, encouraging, and modern. 
     Return as a JSON object with keys: 'summary', 'strengths' (array), 'weaknesses' (array), 'recommendation'.`;
 
-  const response = await safeGenerateContent({
-    model: geminiModel,
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          summary: { type: Type.STRING },
-          strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
-          weaknesses: { type: Type.ARRAY, items: { type: Type.STRING } },
-          recommendation: { type: Type.STRING }
-        },
-        required: ["summary", "strengths", "weaknesses", "recommendation"]
+    const localAi = getAiInstance();
+    const response = await localAi.models.generateContent({
+      model: geminiModel,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            summary: { type: Type.STRING },
+            strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
+            weaknesses: { type: Type.ARRAY, items: { type: Type.STRING } },
+            recommendation: { type: Type.STRING }
+          },
+          required: ["summary", "strengths", "weaknesses", "recommendation"]
+        }
       }
-    }
-  });
-  return JSON.parse(response.text || "{}");
+    });
+  return JSON.parse(cleanJsonString(response.text || "{}"));
 }

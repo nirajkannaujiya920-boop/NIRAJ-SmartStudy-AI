@@ -21,8 +21,10 @@ import { motion } from 'motion/react';
 import { auth, db } from '../firebase';
 import { collection, query, where, onSnapshot, limit, orderBy } from 'firebase/firestore';
 import { StudyNote, QuizResult } from '../types';
+import { useLanguage } from '../lib/LanguageContext';
 
 export const Dashboard: React.FC = () => {
+  const { t } = useLanguage();
   const [stats, setStats] = useState({
     streak: 5,
     points: 1250,
@@ -64,12 +66,13 @@ export const Dashboard: React.FC = () => {
   }, [user]);
 
   const features = [
-    { name: 'AI Assistant', path: '/voice-assistant', icon: Zap, color: 'bg-yellow-500', desc: 'Live Talk & Knowledge' },
-    { name: 'Scan Question', path: '/scan', icon: Camera, color: 'bg-blue-500', desc: 'Solve with photo' },
-    { name: 'Ask Doubt', path: '/doubt', icon: BrainCircuit, color: 'bg-purple-500', desc: 'AI Chat support' },
-    { name: 'Summarizer', path: '/summarize', icon: FileText, color: 'bg-orange-500', desc: 'Shorten notes' },
-    { name: 'Translator', path: '/translator', icon: Languages, color: 'bg-red-500', desc: 'All language support' },
-    { name: 'Quiz Mode', path: '/quiz', icon: HelpCircle, color: 'bg-green-500', desc: 'Practice MCQs' },
+    { name: t('ai'), path: '/voice-assistant', icon: Zap, color: 'bg-yellow-500', desc: 'Live Talk & Knowledge' },
+    { name: t('scan'), path: '/scan', icon: Camera, color: 'bg-blue-500', desc: 'Solve with photo' },
+    { name: t('ask'), path: '/doubt', icon: BrainCircuit, color: 'bg-purple-500', desc: 'AI Chat support' },
+    { name: t('summarizer'), path: '/summarize', icon: FileText, color: 'bg-orange-500', desc: 'Shorten notes' },
+    { name: t('translator'), path: '/translator', icon: Languages, color: 'bg-red-500', desc: 'All language support' },
+    { name: t('smartQuiz'), path: '/quiz', icon: HelpCircle, color: 'bg-green-500', desc: 'Practice MCQs' },
+    { name: 'Visual AI', path: '/visual-learning', icon: Sparkles, color: 'bg-pink-500', desc: 'Image Study & Diagrams' },
   ];
 
   return (
@@ -77,8 +80,8 @@ export const Dashboard: React.FC = () => {
       {/* Welcome Header */}
       <section className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Hello, {user?.displayName?.split(' ')[0] || 'Student'}! 👋</h2>
-          <p className="text-gray-500 dark:text-gray-400">Smart AI jo khud padhaye</p>
+          <h2 className="text-2xl font-bold">{t('welcomeBack')} {user?.displayName?.split(' ')[0] || t('guestStudent')}! 👋</h2>
+          <p className="text-gray-500 dark:text-gray-400">{t('readyToStudy')}</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 px-3 py-1.5 rounded-full font-bold text-sm">
@@ -113,24 +116,26 @@ export const Dashboard: React.FC = () => {
       </section>
 
       {/* Quick Access AI Assistant */}
-      <section className="bg-white dark:bg-[#1e1e1e] rounded-3xl p-6 border-2 border-yellow-500/20 shadow-xl shadow-yellow-500/5 relative overflow-hidden group">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <Logo size="sm" className="border-yellow-500 shadow-yellow-500/20" />
-              <span className="text-xs font-black uppercase tracking-widest text-yellow-600 dark:text-yellow-400">Live AI Assistant</span>
+      <section className="max-w-2xl mx-auto">
+        <div className="bg-white dark:bg-[#1e1e1e] rounded-3xl p-6 border-2 border-yellow-500/20 shadow-xl shadow-yellow-500/5 relative overflow-hidden group">
+          <div className="relative z-10 flex flex-col justify-between h-full gap-6">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Logo size="sm" className="border-yellow-500 shadow-yellow-500/20" />
+                <span className="text-xs font-black uppercase tracking-widest text-yellow-600 dark:text-yellow-400">Live AI Assistant</span>
+              </div>
+              <h3 className="text-2xl font-black mb-2">Talk to NIRAJ AI</h3>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">Experience a human-like conversation with our most powerful AI. It has world-wide knowledge.</p>
             </div>
-            <h3 className="text-2xl font-black mb-2">Talk to NIRAJ AI</h3>
-            <p className="text-gray-500 dark:text-gray-400 text-sm max-w-md">Experience a human-like conversation with our most powerful AI. It has world-wide knowledge and can help you with anything.</p>
+            <Link 
+              to="/voice-assistant"
+              className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-2xl font-black shadow-xl shadow-yellow-500/20 hover:scale-105 transition-all active:scale-95 group-hover:shadow-yellow-500/40"
+            >
+              Start Live Session <Mic size={20} />
+            </Link>
           </div>
-          <Link 
-            to="/voice-assistant"
-            className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-2xl font-black shadow-xl shadow-yellow-500/20 hover:scale-105 transition-all active:scale-95 group-hover:shadow-yellow-500/40"
-          >
-            Start Live Session <Mic size={20} />
-          </Link>
+          <div className="absolute -right-12 -top-12 w-48 h-48 bg-yellow-500/5 rounded-full blur-3xl group-hover:bg-yellow-500/10 transition-colors" />
         </div>
-        <div className="absolute -right-12 -top-12 w-48 h-48 bg-yellow-500/5 rounded-full blur-3xl group-hover:bg-yellow-500/10 transition-colors" />
       </section>
 
       {/* Main Features Grid */}
@@ -170,7 +175,7 @@ export const Dashboard: React.FC = () => {
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold flex items-center gap-2">
               <Clock size={20} className="text-blue-500" />
-              Recent Notes
+              {t('recentActivity')}
             </h3>
             <Link to="/notes" className="text-xs text-blue-600 dark:text-blue-400 font-bold">View All</Link>
           </div>
@@ -188,7 +193,7 @@ export const Dashboard: React.FC = () => {
                 </div>
               ))
             ) : (
-              <p className="text-sm text-gray-500 text-center py-4 italic">No notes saved yet</p>
+              <p className="text-sm text-gray-500 text-center py-4 italic">{t('noActivity')}</p>
             )}
           </div>
         </section>
@@ -196,7 +201,7 @@ export const Dashboard: React.FC = () => {
         <section className="bg-gradient-to-br from-blue-600 to-purple-700 rounded-2xl p-6 text-white shadow-lg shadow-blue-500/20">
           <h3 className="font-bold mb-4 flex items-center gap-2">
             <BarChart2 size={20} />
-            Study Progress
+            {t('progressTracker')}
           </h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4">

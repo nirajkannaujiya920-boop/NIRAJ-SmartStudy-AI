@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Mic, Camera, AlertCircle, CheckCircle2, ChevronRight, X, Info, Settings as SettingsIcon } from 'lucide-react';
+import { ShieldCheck, Mic, Camera, AlertCircle, CheckCircle2, ChevronRight, X, Info, Settings as SettingsIcon, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface PermissionStatus {
@@ -88,21 +88,29 @@ export const PermissionManager: React.FC<{ onClose?: () => void }> = ({ onClose 
         </div>
 
         {isDenied && (
-          <div className="p-4 bg-blue-50/50 dark:bg-blue-900/10 rounded-2xl border border-blue-100/50 dark:border-blue-900/20 flex flex-col gap-3">
+          <div className="p-4 bg-red-50/50 dark:bg-red-900/10 rounded-2xl border border-red-100/50 dark:border-red-900/20 flex flex-col gap-3">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 bg-white dark:bg-gray-800 rounded-lg flex items-center justify-center shadow-sm shrink-0">
-                <AlertCircle size={16} className="text-blue-600 dark:text-blue-400" />
+                <AlertCircle size={16} className="text-red-600 dark:text-red-400" />
               </div>
               <p className="text-[11px] text-gray-600 dark:text-gray-300 leading-relaxed font-medium">
-                Access is currently restricted by your browser. To use this feature, please enable it in your site settings.
+                Aapne browser me Mike access block kar diya hai. App ise apne aap on nahi kar sakta. Kripya niche diye gaye steps follow karein.
               </p>
             </div>
-            <button 
-              onClick={() => setShowGuide(type)}
-              className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 flex items-center gap-1.5 hover:underline bg-white dark:bg-gray-800 px-3 py-2 rounded-lg self-start shadow-sm"
-            >
-              <Info size={12} /> Setup Instructions
-            </button>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => setShowGuide(type)}
+                className="flex-1 text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 flex items-center justify-center gap-1.5 bg-white dark:bg-gray-800 px-3 py-2.5 rounded-xl shadow-sm border border-blue-100 dark:border-blue-900/20"
+              >
+                <Info size={12} /> Setup Guide
+              </button>
+              <button 
+                onClick={() => window.location.reload()}
+                className="flex-1 text-[10px] font-black uppercase tracking-widest text-white flex items-center justify-center gap-1.5 bg-blue-600 px-3 py-2.5 rounded-xl shadow-md"
+              >
+                <RefreshCw size={12} /> Refresh App
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -163,19 +171,19 @@ export const PermissionManager: React.FC<{ onClose?: () => void }> = ({ onClose 
                 <div className="space-y-4 text-left">
                   <div className="flex gap-3">
                     <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0">1</div>
-                    <p className="text-sm">Browser ke top address bar me <b>Lock Icon</b> 🔒 par click karein.</p>
+                    <p className="text-sm">Chrome browser ke top right me <b>3 dots (⋮)</b> par click karein.</p>
                   </div>
                   <div className="flex gap-3">
                     <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0">2</div>
-                    <p className="text-sm"><b>Permissions</b> ya <b>Site Settings</b> par jayein.</p>
+                    <p className="text-sm"><b>Settings</b> ya <b>(i) Info icon</b> par jayein, phir <b>Site Settings</b> par click karein.</p>
                   </div>
                   <div className="flex gap-3">
                     <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0">3</div>
-                    <p className="text-sm"><b>{showGuide === 'microphone' ? 'Microphone' : 'Camera'}</b> ko dhundhein aur <b>Allow</b> par set karein.</p>
+                    <p className="text-sm"><b>{showGuide === 'microphone' ? 'Microphone' : 'Camera'}</b> ko select karein aur is site ko <b>Allow</b> kar dein.</p>
                   </div>
                   <div className="flex gap-3">
                     <div className="w-6 h-6 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold shrink-0">4</div>
-                    <p className="text-sm">Page ko <b>Refresh</b> karein.</p>
+                    <p className="text-sm">App par wapas aakar page ko <b>Refresh</b> karein.</p>
                   </div>
                 </div>
 

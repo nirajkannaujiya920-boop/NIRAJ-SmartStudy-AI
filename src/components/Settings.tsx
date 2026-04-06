@@ -20,11 +20,13 @@ import { auth, logOut } from '../firebase';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { checkApiKey } from '../lib/gemini';
+import { useLanguage } from '../lib/LanguageContext';
+import { Language } from '../lib/translations';
 
 export const Settings: React.FC = () => {
+  const { language, setLanguage, t } = useLanguage();
   const [notifications, setNotifications] = useState(true);
   const [autoSpeak, setAutoSpeak] = useState(false);
-  const [language, setLanguage] = useState('English');
   const [showAbout, setShowAbout] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showLanguage, setShowLanguage] = useState(false);
@@ -34,11 +36,11 @@ export const Settings: React.FC = () => {
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    const check = async () => {
+    const checkStatus = async () => {
       const isValid = await checkApiKey();
       setApiStatus(isValid ? 'connected' : 'error');
     };
-    check();
+    checkStatus();
   }, []);
 
   const handleLogout = async () => {
@@ -50,28 +52,53 @@ export const Settings: React.FC = () => {
     window.open('https://play.google.com/store/apps/details?id=com.niraj.smartstudy', '_blank');
   };
 
-  const languages = ['English', 'Hindi', 'Bengali', 'Marathi', 'Telugu', 'Tamil', 'Gujarati', 'Urdu'];
+  const [customApiKey, setCustomApiKey] = useState(localStorage.getItem('custom_gemini_api_key') || '');
+  const [isSavingKey, setIsSavingKey] = useState(false);
+
+  const saveApiKey = async () => {
+    setIsSavingKey(true);
+    if (customApiKey.trim()) {
+      localStorage.setItem('custom_gemini_api_key', customApiKey.trim());
+    } else {
+      localStorage.removeItem('custom_gemini_api_key');
+    }
+    
+    // Test the key
+    const isValid = await checkApiKey();
+    setApiStatus(isValid ? 'connected' : 'error');
+    setIsSavingKey(false);
+    
+    if (isValid) {
+      alert("API Key saved and verified! App will now use your custom key.");
+    } else if (customApiKey.trim()) {
+      alert("Warning: The API key provided seems invalid. Please check and try again.");
+    } else {
+      alert("Custom API Key removed. Using default key.");
+    }
+  };
+
+  const languages: Language[] = ['English', 'Hindi', 'Bengali', 'Marathi', 'Telugu', 'Tamil', 'Gujarati', 'Urdu'];
 
   const sections = [
     {
-      title: 'Preferences',
+      title: t('preferences'),
       items: [
-        { name: 'Notifications', icon: Bell, type: 'toggle', value: notifications, action: () => setNotifications(!notifications) },
-        { name: 'Auto-Speak AI Responses', icon: Volume2, type: 'toggle', value: autoSpeak, action: () => {
+        { name: t('notifications'), icon: Bell, type: 'toggle', value: notifications, action: () => setNotifications(!notifications) },
+        { name: t('autoSpeak'), icon: Volume2, type: 'toggle', value: autoSpeak, action: () => {
           const newValue = !autoSpeak;
           setAutoSpeak(newValue);
           localStorage.setItem('autoSpeak', JSON.stringify(newValue));
         } },
-        { name: 'Language', icon: Globe, type: 'select', value: language, action: () => setShowLanguage(true) },
-        { name: 'App Permissions', icon: ShieldCheck, type: 'link', action: () => setShowPermissions(true) },
+        { name: t('language'), icon: Globe, type: 'select', value: language, action: () => setShowLanguage(true) },
+        { name: t('appPermissions'), icon: ShieldCheck, type: 'link', action: () => setShowPermissions(true) },
       ]
     },
     {
-      title: 'Support',
+      title: t('support'),
       items: [
-        { name: 'Rate Us (Support Developer)', icon: Star, type: 'link', action: handleRate },
-        { name: 'About App', icon: Info, type: 'link', action: () => setShowAbout(true) },
-        { name: 'Privacy Policy', icon: Shield, type: 'link', action: () => setShowPrivacy(true) },
+        { name: t('rateUs'), icon: Star, type: 'link', action: handleRate },
+        { name: t('aboutApp'), icon: Info, type: 'link', action: () => setShowAbout(true) },
+        { name: t('privacyPolicy'), icon: Shield, type: 'link', action: () => setShowPrivacy(true) },
       ]
     }
   ];
@@ -79,7 +106,7 @@ export const Settings: React.FC = () => {
   return (
     <div className="space-y-8 pb-10">
       <div className="text-center">
-        <h2 className="text-2xl font-black mb-2">Settings</h2>
+        <h2 className="text-2xl font-black mb-2">{t('settings')}</h2>
         <p className="text-gray-500 dark:text-gray-400">Manage your account and app preferences</p>
       </div>
 
@@ -91,7 +118,7 @@ export const Settings: React.FC = () => {
           className="w-16 h-16 rounded-full border-2 border-blue-500 p-0.5"
         />
         <div className="flex-1">
-          <h3 className="font-bold text-lg">{user?.displayName || 'Guest Student'}</h3>
+          <h3 className="font-bold text-lg">{user?.displayName || t('guestStudent')}</h3>
           <p className="text-sm text-gray-500">{user?.email || 'guest@example.com'}</p>
         </div>
         <button className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-500">
@@ -99,8 +126,8 @@ export const Settings: React.FC = () => {
         </button>
       </div>
 
-      {/* API Status Card */}
-      <div className="bg-white dark:bg-[#1e1e1e] p-4 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm">
+      {/* AI Status Card */}
+      <div className="bg-white dark:bg-[#1e1e1e] p-6 rounded-3xl border border-gray-200 dark:border-gray-800 shadow-sm">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
@@ -110,36 +137,53 @@ export const Settings: React.FC = () => {
               <Zap size={20} />
             </div>
             <div>
-              <h3 className="font-bold text-sm">AI Connection Status</h3>
-              <p className="text-xs text-gray-500">
-                {apiStatus === 'connected' ? 'All systems working correctly' : 
-                 apiStatus === 'error' ? 'API Key is missing or invalid' : 'Checking connection...'}
-              </p>
+              <p className="text-xs font-black text-gray-400 uppercase tracking-widest">{t('aiStatus')}</p>
+              <h4 className="font-bold">
+                {apiStatus === 'connected' ? t('connected') : 
+                 apiStatus === 'error' ? t('error') : 'CHECKING...'}
+              </h4>
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            {apiStatus === 'connected' ? (
-              <span className="text-[10px] font-black bg-green-500 text-white px-2 py-0.5 rounded-full flex items-center gap-1">
-                <CheckCircle2 size={10} /> CONNECTED
-              </span>
-            ) : apiStatus === 'error' ? (
-              <span className="text-[10px] font-black bg-red-500 text-white px-2 py-0.5 rounded-full flex items-center gap-1">
-                <AlertCircle size={10} /> ERROR
-              </span>
-            ) : (
-              <span className="text-[10px] font-black bg-blue-500 text-white px-2 py-0.5 rounded-full animate-pulse">
-                CHECKING...
-              </span>
-            )}
-          </div>
+          {apiStatus === 'error' && (
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-red-600 text-white text-xs font-black rounded-lg uppercase tracking-widest"
+            >
+              Fix
+            </button>
+          )}
         </div>
         {apiStatus === 'error' && (
-          <div className="mt-3 p-3 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-900/20">
-            <p className="text-[10px] text-red-600 dark:text-red-400 leading-tight">
-              ⚠️ **Fix:** AI Studio ke **Settings &gt; Secrets** mein jayein aur `GEMINI_API_KEY` ko phir se save karein.
+          <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-800 flex gap-2">
+            <AlertCircle size={16} className="text-red-600 shrink-0" />
+            <p className="text-[10px] text-red-600 font-bold leading-tight">
+              Default API key is not working. You can add your own key below.
             </p>
           </div>
         )}
+
+        <div className="mt-6 space-y-3">
+          <label className="block text-xs font-black text-gray-400 uppercase tracking-widest px-2">Custom Gemini API Key</label>
+          <div className="flex gap-2">
+            <input 
+              type="password"
+              value={customApiKey}
+              onChange={(e) => setCustomApiKey(e.target.value)}
+              placeholder="Paste your API key here..."
+              className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button 
+              onClick={saveApiKey}
+              disabled={isSavingKey}
+              className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50"
+            >
+              {isSavingKey ? '...' : 'Save'}
+            </button>
+          </div>
+          <p className="text-[10px] text-gray-400 px-2 leading-tight">
+            Get your free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">Google AI Studio</a>.
+          </p>
+        </div>
       </div>
 
       {/* Settings Sections */}
@@ -188,14 +232,14 @@ export const Settings: React.FC = () => {
         className="w-full py-4 bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-red-100 dark:hover:bg-red-900/20 transition-all"
       >
         <LogOut size={20} />
-        Sign Out
+        {t('signOut')}
       </button>
 
       {/* Branding */}
       <div className="text-center p-6 bg-gradient-to-r from-blue-600 to-purple-600 rounded-3xl text-white shadow-xl">
         <h4 className="text-lg font-black mb-1">NIRAJ SmartStudy AI</h4>
         <p className="text-xs opacity-90 flex items-center justify-center gap-1">
-          Made by <span className="font-black text-yellow-300">QUEEN'S COLLEGE STUDENT</span>
+          {t('madeBy')} <span className="font-black text-yellow-300">QUEEN'S COLLEGE STUDENT</span>
         </p>
         <div className="flex justify-center gap-1 mt-3">
           {[1,2,3,4,5].map(i => <Heart key={i} size={10} fill="currentColor" className="text-red-400" />)}
@@ -203,7 +247,7 @@ export const Settings: React.FC = () => {
       </div>
 
       <div className="text-center space-y-1">
-        <p className="text-xs text-gray-400">Version 1.2.0 (Advanced AI)</p>
+        <p className="text-xs text-gray-400">{t('version')} 1.2.0 (Advanced AI)</p>
       </div>
 
       <div className="pt-8 border-t border-gray-100 dark:border-gray-800">
@@ -232,7 +276,7 @@ export const Settings: React.FC = () => {
       {/* Modals */}
       <AnimatePresence>
         {showAbout && (
-          <Modal title="About NIRAJ SmartStudy AI" onClose={() => setShowAbout(false)}>
+          <Modal title={`About NIRAJ SmartStudy AI`} onClose={() => setShowAbout(false)}>
             <div className="space-y-4 text-sm leading-relaxed text-gray-600 dark:text-gray-400 h-96 overflow-y-auto pr-2">
               <div className="p-4 bg-blue-600 rounded-2xl text-white mb-4">
                 <h4 className="font-black text-lg mb-1">Meet the Creator</h4>
@@ -283,7 +327,7 @@ export const Settings: React.FC = () => {
         )}
 
         {showPrivacy && (
-          <Modal title="Privacy Policy – NIRAJ AI Study App" onClose={() => setShowPrivacy(false)}>
+          <Modal title={`Privacy Policy – NIRAJ AI Study App`} onClose={() => setShowPrivacy(false)}>
             <div className="space-y-4 text-sm text-gray-600 dark:text-gray-400 h-96 overflow-y-auto pr-2">
               <p>NIRAJ AI Study App aapki privacy ko bahut mahatva deta hai. Yeh Privacy Policy batati hai ki hum kaun si jankari collect karte hain aur uska use kaise karte hain.</p>
               

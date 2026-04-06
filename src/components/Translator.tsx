@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Languages, Mic, Volume2, Copy, RefreshCw, ArrowLeft, ArrowRight, Sparkles } from 'lucide-react';
+import { Languages, Mic, Volume2, Copy, RefreshCw, ArrowLeft, ArrowRight, Sparkles, X } from 'lucide-react';
 import { translateText } from '../lib/gemini';
 import { SmartMic } from './SmartMic';
 import { motion, AnimatePresence } from 'motion/react';
@@ -108,6 +108,17 @@ export const Translator: React.FC = () => {
               placeholder="Type or paste text here..."
               className="w-full h-32 p-4 bg-transparent border-2 border-gray-100 dark:border-gray-800 rounded-2xl focus:border-blue-500 focus:outline-none transition-all resize-none font-medium"
             />
+            <div className="absolute top-4 right-4 flex gap-2">
+              {text && (
+                <button 
+                  onClick={() => setText('')}
+                  className="p-2 bg-white/80 dark:bg-gray-800/80 rounded-lg text-red-500 hover:bg-red-50 transition-colors shadow-sm"
+                  title="Clear All"
+                >
+                  <X size={16} />
+                </button>
+              )}
+            </div>
             <div className="absolute bottom-4 right-4">
               <SmartMic onResult={(t) => setText(prev => prev + ' ' + t)} />
             </div>
@@ -150,6 +161,9 @@ export const Translator: React.FC = () => {
               <div className="flex items-center justify-between">
                 <span className="text-[10px] font-black uppercase tracking-widest text-blue-600">Translated Result</span>
                 <div className="flex gap-2">
+                  <button onClick={() => setTranslatedText('')} className="p-2 hover:bg-red-100 dark:hover:bg-red-900/20 rounded-lg transition-colors text-red-500" title="Clear Result">
+                    <X size={18} />
+                  </button>
                   <button onClick={() => handleSpeak(translatedText, targetLang)} className="p-2 hover:bg-blue-100 dark:hover:bg-blue-800 rounded-lg transition-colors text-blue-600">
                     <Volume2 size={18} />
                   </button>

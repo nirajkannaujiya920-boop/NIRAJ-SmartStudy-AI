@@ -18,20 +18,22 @@ import {
   HelpCircle,
   Volume2,
   Zap,
-  Sparkles
+  Sparkles,
+  WifiOff
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { auth, logOut } from '../firebase';
 import { Logo } from './Logo';
 import { AdBanner } from './AdBanner';
 import { AdsterraBanner } from './AdsterraBanner';
-import { WifiOff } from 'lucide-react';
+import { useLanguage } from '../lib/LanguageContext';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
+  const { t } = useLanguage();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isDarkMode, setIsDarkMode] = useState(() => {
@@ -72,18 +74,18 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   }, [isDarkMode]);
 
   const navItems = [
-    { name: 'Home', path: '/', icon: Home },
-    { name: 'AI Assistant', path: '/voice-assistant', icon: Zap },
-    { name: 'Scan Question', path: '/scan', icon: Camera },
-    { name: 'Ask Doubt', path: '/doubt', icon: BrainCircuit },
-    { name: 'Summarizer', path: '/summarize', icon: FileText },
-    { name: 'Quiz Mode', path: '/quiz', icon: HelpCircle },
-    { name: 'Auto Study', path: '/auto-study', icon: BrainCircuit },
-    { name: 'Voice Learning', path: '/voice', icon: Volume2 },
-    { name: 'Study Planner', path: '/planner', icon: Calendar },
-    { name: 'Notes', path: '/notes', icon: BookOpen },
-    { name: 'Progress', path: '/progress', icon: BarChart2 },
-    { name: 'Settings', path: '/settings', icon: Settings },
+    { name: t('home'), path: '/', icon: Home },
+    { name: t('ai'), path: '/voice-assistant', icon: Zap },
+    { name: t('scan'), path: '/scan', icon: Camera },
+    { name: t('ask'), path: '/doubt', icon: BrainCircuit },
+    { name: t('summarizer'), path: '/summarize', icon: FileText },
+    { name: t('smartQuiz'), path: '/quiz', icon: HelpCircle },
+    { name: t('autoStudy'), path: '/auto-study', icon: BrainCircuit },
+    { name: t('voiceLearning'), path: '/voice', icon: Volume2 },
+    { name: t('studyPlanner'), path: '/planner', icon: Calendar },
+    { name: t('notes'), path: '/notes', icon: BookOpen },
+    { name: t('progressTracker'), path: '/progress', icon: BarChart2 },
+    { name: t('settings'), path: '/settings', icon: Settings },
   ];
 
   const handleLogout = async () => {

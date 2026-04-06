@@ -22,6 +22,7 @@ import { ProgressTracker } from './components/ProgressTracker';
 import { Settings } from './components/Settings';
 import { AutoStudy } from './components/AutoStudy';
 import { VoiceLearning } from './components/VoiceLearning';
+import { VisualLearning } from './components/VisualLearning';
 import { motion, AnimatePresence } from 'motion/react';
 import { LogIn, GraduationCap, Sparkles } from 'lucide-react';
 
@@ -216,6 +217,7 @@ export default function App() {
         <Route path="/settings" element={<Layout><Settings /></Layout>} />
         <Route path="/auto-study" element={<Layout><AutoStudy /></Layout>} />
         <Route path="/voice" element={<Layout><VoiceLearning /></Layout>} />
+        <Route path="/visual-learning" element={<Layout><VisualLearning /></Layout>} />
 
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
