@@ -171,28 +171,6 @@ export const Dashboard: React.FC = () => {
 
       {/* Recent Activity & Stats */}
       <div className="grid md:grid-cols-2 gap-6">
-        {/* Launch AI Teacher Button */}
-        <section className="bg-gradient-to-br from-red-600 to-orange-600 rounded-3xl p-6 text-white shadow-xl shadow-red-500/20 relative overflow-hidden group">
-          <div className="relative z-10 flex flex-col justify-between h-full">
-            <div>
-              <div className="flex items-center gap-2 mb-2">
-                <Zap size={24} className="text-red-200" />
-                <span className="text-xs font-black uppercase tracking-widest text-red-100">Ready to Start?</span>
-              </div>
-              <h3 className="text-2xl font-black mb-2">Launch AI Teacher</h3>
-              <p className="text-red-100 text-sm mb-6 max-w-xs">Start your learning journey with the most advanced AI Teacher. Click to launch now!</p>
-            </div>
-            <Link 
-              to="/doubt"
-              className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-white text-red-600 rounded-2xl font-black shadow-xl hover:scale-105 transition-all active:scale-95 group-hover:shadow-red-500/40"
-            >
-              Launch Now <ArrowRight size={20} />
-            </Link>
-          </div>
-          <div className="absolute -right-12 -top-12 w-48 h-48 bg-white/10 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700" />
-          <div className="absolute -left-8 -bottom-8 w-32 h-32 bg-red-400/20 rounded-full blur-2xl" />
-        </section>
-
         <section className="bg-white dark:bg-[#1e1e1e] rounded-2xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-bold flex items-center gap-2">

@@ -209,35 +209,6 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           {children}
         </div>
       </main>
-
-      {/* Mobile Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-[#1e1e1e] border-t border-gray-200 dark:border-gray-800 z-40 flex items-center justify-around px-2 lg:hidden">
-        {[navItems[0], navItems[1], navItems[2], navItems[3], navItems[4]].map((item) => (
-          <Link
-            key={item.path}
-            to={item.path}
-            className={`flex flex-col items-center justify-center gap-1 w-full h-full transition-colors ${
-              location.pathname === item.path 
-                ? 'text-blue-600 dark:text-blue-400' 
-                : 'text-gray-500 dark:text-gray-500'
-            }`}
-          >
-            <item.icon size={20} />
-            <span className="text-[10px] font-medium">{item.name.split(' ')[0]}</span>
-          </Link>
-        ))}
-      </nav>
-
-      {/* Floating AI Assistant Button */}
-      <motion.button
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        onClick={() => navigate('/voice-assistant')}
-        className="fixed bottom-20 right-6 z-50 w-14 h-14 bg-gradient-to-br from-blue-600 to-purple-600 text-white rounded-full shadow-2xl flex items-center justify-center border-4 border-white dark:border-gray-800 lg:bottom-8"
-      >
-        <Zap size={28} fill="white" />
-        <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white dark:border-gray-800 animate-pulse" />
-      </motion.button>
     </div>
   );
 };
