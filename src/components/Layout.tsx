@@ -204,11 +204,42 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
 
       {/* Main Content */}
       <main className="pt-16 lg:pl-64 min-h-screen">
-        <div className="max-w-4xl mx-auto p-4 sm:p-6 pb-24">
+        <div className="max-w-4xl mx-auto p-4 sm:p-6 pb-24 lg:pb-6">
           <AdBanner unitId="ca-app-pub-4406624365938213/5348106774" format="banner" />
           {children}
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-[#1e1e1e]/80 backdrop-blur-lg border-t border-gray-200 dark:border-gray-800 lg:hidden z-40 px-6 py-3 flex items-center justify-between shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+        {[
+          { icon: Home, path: '/', label: t('home') },
+          { icon: BookOpen, path: '/notes', label: t('notes') },
+          { icon: BrainCircuit, path: '/doubt', label: t('ask') },
+          { icon: Settings, path: '/settings', label: t('settings') }
+        ].map((item) => (
+          <Link
+            key={item.path}
+            to={item.path}
+            className={`flex flex-col items-center gap-1 transition-colors ${
+              location.pathname === item.path ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'
+            }`}
+          >
+            <item.icon size={20} className={location.pathname === item.path ? 'animate-bounce' : ''} />
+            <span className="text-[10px] font-bold uppercase tracking-widest">{item.label}</span>
+          </Link>
+        ))}
+      </nav>
+
+      {/* Floating AI Assistant Button */}
+      <motion.button
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={() => navigate('/voice-assistant')}
+        className="fixed bottom-20 right-6 w-14 h-14 bg-gradient-to-br from-blue-600 to-purple-600 text-white rounded-full shadow-2xl shadow-blue-500/40 flex items-center justify-center z-40 lg:hidden border-2 border-white/20"
+      >
+        <Zap size={24} fill="currentColor" />
+      </motion.button>
     </div>
   );
 };

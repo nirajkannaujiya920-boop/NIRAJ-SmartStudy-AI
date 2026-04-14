@@ -219,6 +219,16 @@ export const DoubtChat: React.FC = () => {
     }
   };
 
+  const base64ToUint8Array = (base64: string) => {
+    const binaryString = window.atob(base64);
+    const len = binaryString.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes;
+  };
+
   const handleSpeak = async (t_text: string, preGeneratedAudio?: string) => {
     if (!t_text) return;
     
@@ -252,42 +262,24 @@ export const DoubtChat: React.FC = () => {
         audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
       }
 
-      const audioContext = audioContextRef.current;
-      if (audioContext.state === 'suspended') {
-        await audioContext.resume();
-      }
-
-      const binaryString = window.atob(base64Audio);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
-
-      const pcmData = new Int16Array(bytes.buffer);
-      const float32Data = new Float32Array(pcmData.length);
-      for (let i = 0; i < pcmData.length; i++) float32Data[i] = pcmData[i] / 32768.0;
-
-      const audioBuffer = audioContext.createBuffer(1, float32Data.length, 24000);
-      audioBuffer.getChannelData(0).set(float32Data);
+      const audioData = base64ToUint8Array(base64Audio);
+      const audioBuffer = await audioContextRef.current.decodeAudioData(audioData.buffer);
       
-      const source = audioContext.createBufferSource();
+      const source = audioContextRef.current.createBufferSource();
       source.buffer = audioBuffer;
-      source.connect(audioContext.destination);
-      
-      source.onended = () => {
-        setIsSpeaking(false);
-        audioSourceRef.current = null;
-      };
-
+      source.connect(audioContextRef.current.destination);
+      source.onended = () => setIsSpeaking(false);
+      source.start();
       audioSourceRef.current = source;
-      source.start(0);
-    } catch (err) {
-      console.error("Playback failed:", err);
+    } catch (error) {
+      console.error('Speech generation error:', error);
       setIsSpeaking(false);
     }
   };
 
-  const saveToNotes = async (text: string, index: number) => {
+  const saveToNotes = async (text: string) => {
     if (!auth.currentUser) return;
-    setSaving(index);
+    setSaving(messages.length - 1);
     try {
       await addDoc(collection(db, 'notes'), {
         userId: auth.currentUser.uid,
@@ -423,7 +415,7 @@ export const DoubtChat: React.FC = () => {
                       {isSpeaking ? 'Speaking...' : 'Listen'}
                     </button>
                     <button 
-                      onClick={() => saveToNotes(msg.text, idx)}
+                      onClick={() => saveToNotes(msg.text)}
                       className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-blue-500 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all"
                       title={t('saveToNotes')}
                     >

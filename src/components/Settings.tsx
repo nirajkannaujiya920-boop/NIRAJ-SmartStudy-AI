@@ -13,7 +13,8 @@ import {
   ShieldCheck,
   Zap,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  RefreshCw
 } from 'lucide-react';
 import { PermissionManager } from './PermissionManager';
 import { auth, logOut } from '../firebase';
@@ -50,31 +51,6 @@ export const Settings: React.FC = () => {
 
   const handleRate = () => {
     window.open('https://play.google.com/store/apps/details?id=com.niraj.smartstudy', '_blank');
-  };
-
-  const [customApiKey, setCustomApiKey] = useState(localStorage.getItem('custom_gemini_api_key') || '');
-  const [isSavingKey, setIsSavingKey] = useState(false);
-
-  const saveApiKey = async () => {
-    setIsSavingKey(true);
-    if (customApiKey.trim()) {
-      localStorage.setItem('custom_gemini_api_key', customApiKey.trim());
-    } else {
-      localStorage.removeItem('custom_gemini_api_key');
-    }
-    
-    // Test the key
-    const isValid = await checkApiKey();
-    setApiStatus(isValid ? 'connected' : 'error');
-    setIsSavingKey(false);
-    
-    if (isValid) {
-      alert("API Key saved and verified! App will now use your custom key.");
-    } else if (customApiKey.trim()) {
-      alert("Warning: The API key provided seems invalid. Please check and try again.");
-    } else {
-      alert("Custom API Key removed. Using default key.");
-    }
   };
 
   const languages: Language[] = ['English', 'Hindi', 'Bengali', 'Marathi', 'Telugu', 'Tamil', 'Gujarati', 'Urdu'];
@@ -144,45 +120,16 @@ export const Settings: React.FC = () => {
               </h4>
             </div>
           </div>
-          {apiStatus === 'error' && (
-            <button 
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-red-600 text-white text-xs font-black rounded-lg uppercase tracking-widest"
-            >
-              Fix
-            </button>
-          )}
-        </div>
-        {apiStatus === 'error' && (
-          <div className="mt-4 p-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-800 flex gap-2">
-            <AlertCircle size={16} className="text-red-600 shrink-0" />
-            <p className="text-[10px] text-red-600 font-bold leading-tight">
-              Default API key is not working. You can add your own key below.
-            </p>
-          </div>
-        )}
-
-        <div className="mt-6 space-y-3">
-          <label className="block text-xs font-black text-gray-400 uppercase tracking-widest px-2">Custom Gemini API Key</label>
-          <div className="flex gap-2">
-            <input 
-              type="password"
-              value={customApiKey}
-              onChange={(e) => setCustomApiKey(e.target.value)}
-              placeholder="Paste your API key here..."
-              className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-800 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <button 
-              onClick={saveApiKey}
-              disabled={isSavingKey}
-              className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-lg shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50"
-            >
-              {isSavingKey ? '...' : 'Save'}
-            </button>
-          </div>
-          <p className="text-[10px] text-gray-400 px-2 leading-tight">
-            Get your free key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">Google AI Studio</a>.
-          </p>
+          <button 
+            onClick={async () => {
+              setApiStatus('checking');
+              const isValid = await checkApiKey();
+              setApiStatus(isValid ? 'connected' : 'error');
+            }}
+            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+          >
+            <RefreshCw size={20} className={apiStatus === 'checking' ? 'animate-spin' : ''} />
+          </button>
         </div>
       </div>
 
@@ -272,7 +219,6 @@ export const Settings: React.FC = () => {
           </div>
         </div>
       </div>
-
       {/* Modals */}
       <AnimatePresence>
         {showAbout && (
